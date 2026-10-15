@@ -1,0 +1,41 @@
+[project]
+name = "pipeline-incident-agent"
+version = "0.1.0"
+description = "An AI incident engineer for data pipelines: diagnoses failures and proves its fixes in a sandbox."
+readme = "README.md"
+authors = [
+    { name = "Pranav Paruchuri", email = "pranav.paruchuri6@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "dagster>=1.13.26",
+    "dagster-dbt>=0.29.26",
+    "dagster-webserver>=1.13.26",
+    "dbt-core>=1.12.6",
+    "dbt-duckdb>=1.11.0",
+    "duckdb>=1.5.6",
+    "matplotlib>=3.11.2",
+    "pydantic>=2.14.1",
+    "python-dotenv>=1.2.4",
+    "typer>=0.27.3",
+]
+
+[project.scripts]
+pia = "pipeline_incident_agent.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.12.22,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
+
+[tool.ruff]
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
