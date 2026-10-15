@@ -1,0 +1,207 @@
+{
+  "incident": "R1",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\R1-20261015-001334",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "616dfe2d-06b0-4214-8041-c70f8929fc74",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run 616dfe2d for 2026-10-01 failed at quality_checks because orders, order_items and payments each loaded only about 36% of their trailing median row counts. The upstream export for that day was cut off: every order timestamp falls before 09:00, while all channels and statuses are still present. Nothing changed in the dbt models or the ingest config. I've proposed an upstream redelivery of orders, order_items and payments for 2026-10-01, followed by a rerun.",
+        "root_cause": {
+          "family": "row_count_drop",
+          "cause": "partial_export",
+          "table": "orders",
+          "column": null,
+          "model": null,
+          "explanation": "Upstream delivered truncated 2026-10-01 exports for orders (164 vs median 461), order_items (334 vs 933) and payments (157 vs 439). Orders cover only hours 00-08, and per-hour volume is normal for those hours. All channels and statuses are present, so this is a partial export, not a filtered one. The files are structurally clean, no dbt model changed and the ingest config is the default, so the pipeline did not drop the rows. Customers is at its normal 30 rows."
+        },
+        "evidence": [
+          {
+            "claim": "The run failed at quality_checks on the row_count_trend checks for raw.orders, raw.order_items and raw.payments, each at 36% of its trailing median.",
+            "evidence_ids": [
+              "run:616dfe2d",
+              "log:249",
+              "log:250",
+              "log:251",
+              "check:row_count_trend:raw.orders@live",
+              "check:row_count_trend:raw.order_items@live",
+              "check:row_count_trend:raw.payments@live"
+            ]
+          },
+          {
+            "claim": "Ingest loaded exactly the rows that were in the landing files, and the dbt build passed all its tests.",
+            "evidence_ids": [
+              "log:244",
+              "log:245",
+              "log:246",
+              "log:248",
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "Orders on 10-01 stop at 08:59, while 09-30 covers all 24 hours. All channels, statuses and USD are present, which points to a truncated export, not a filtered one.",
+            "evidence_ids": [
+              "sql:0e804cb7",
+              "sql:0fe92d88",
+              "landing:orders@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "No model changes and an empty ingest config rule out a pipeline-side cause.",
+            "evidence_ids": [
+              "model:changes",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "Customers is unaffected, at 30 rows as in every partition.",
+            "evidence_ids": [
+              "chart:customers",
+              "worker:3"
+            ]
+          },
+          {
+            "claim": "For a one-off partial export, the runbook says to redeliver all affected related tables together and then rerun.",
+            "evidence_ids": [
+              "runbook:missing_data#step-3-partial-vs-filtered",
+              "runbook:missing_data#remedy-for-one-off-export-glitches",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.86,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Filtered export (rejected: all channels and statuses are present, and the gap is by time of day)",
+          "Genuine low-traffic day (rejected: per-hour volume is normal and the data stops abruptly at 09:00)",
+          "Bad model deploy (rejected: no changed models, and dbt tests passed)",
+          "Ingest-side row loss (rejected: ingest config is default and loaded counts match the landing files)",
+          "rerun_only (rejected: the landing files themselves are truncated)",
+          "Including customers in the redelivery (rejected: its count is normal)"
+        ]
+      },
+      "proposal": {
+        "ts": 1792037681.4676793,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 exports for orders, order_items and payments were cut off. Each table has about 36% of its trailing median. The order timestamps stop at 08:59, and the hours that are present have normal per-hour volume. Every channel and status is still present, so this was a partial (truncated) export, not a filtered one. No dbt model changed and the ingest config is the default, so the pipeline is not dropping rows. Customers is at its normal 30 rows. Following the runbook, we ask for redelivery of all three related tables together and then rerun the partition.",
+        "evidence_ids": [
+          "run:616dfe2d",
+          "log:244",
+          "log:245",
+          "log:246",
+          "log:249",
+          "log:250",
+          "log:251",
+          "check:row_count_trend:raw.orders@live",
+          "check:row_count_trend:raw.order_items@live",
+          "check:row_count_trend:raw.payments@live",
+          "sql:0e804cb7",
+          "sql:0fe92d88",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "model:changes",
+          "config:ingest",
+          "chart:customers",
+          "runbook:missing_data#step-3-partial-vs-filtered",
+          "runbook:missing_data#remedy-for-one-off-export-glitches",
+          "worker:1",
+          "worker:2",
+          "worker:3"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 68.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.86,
+      "seconds": 68.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 23,
+    "cited_ids_total": 23,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 20,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 102686,
+        "output_tokens": 2887,
+        "api_equiv_usd": 0.2991
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 40174,
+        "output_tokens": 4039,
+        "api_equiv_usd": 0.1097
+      }
+    },
+    "api_equiv_usd": 0.4088
+  }
+}

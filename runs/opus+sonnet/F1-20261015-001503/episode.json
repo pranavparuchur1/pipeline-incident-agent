@@ -1,0 +1,180 @@
+{
+  "incident": "F1",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\F1-20261015-001503",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "292e7ff4-aaba-4ca5-b2fc-214220b92033",
+    "failed_step": "transform",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Run 292e7ff4 (partition 2026-10-01) failed in `transform` because fct_orders hit a Binder Error: it now selects `o.order_total` from stg_orders, which only has `order_amount`. That edit is the only difference from the deployed models. The upstream orders file and the ingest config haven't changed. I've proposed reverting fct_orders to the deployed version, which the harness will verify with a rerun.",
+        "root_cause": {
+          "family": "failed_job",
+          "cause": "bad_model_deploy",
+          "table": null,
+          "column": "order_total",
+          "model": "fct_orders",
+          "explanation": "Someone edited fct_orders, but the edit isn't in the deployed version. It replaced `o.order_amount` with `o.order_total as order_amount`. Alias `o` is stg_orders, which renames raw order_total to order_amount, so `order_total` doesn't exist at the staging layer. That causes the Binder Error. The landing data matches the contract and the ingest config is empty, so this is a code regression, not upstream drift."
+        },
+        "evidence": [
+          {
+            "claim": "The transform step failed because the fct_orders model errored with Binder Error: column order_total not found in 'o'",
+            "evidence_ids": [
+              "run:292e7ff4",
+              "log:248",
+              "log:251"
+            ]
+          },
+          {
+            "claim": "fct_orders is the only changed model. The edit replaced o.order_amount with o.order_total",
+            "evidence_ids": [
+              "model:changes",
+              "model:fct_orders",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "stg_orders hasn't changed, and it exposes order_amount, not order_total",
+            "evidence_ids": [
+              "model:stg_orders",
+              "schema:staging.stg_orders",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The landing orders file matches the contract and the ingest config is at defaults, so nothing changed upstream",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30",
+              "schema:raw.orders",
+              "config:ingest",
+              "worker:2"
+            ]
+          },
+          {
+            "claim": "The runbook says to revert the model that changed when a model error follows a deploy",
+            "evidence_ids": [
+              "runbook:failed_jobs#model-errors-after-a-deploy",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:3"
+            ]
+          }
+        ],
+        "confidence": 0.93,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream column rename (apply_column_mapping): ruled out because the landing header and contract are identical and both have order_total",
+          "An upstream staging model changed: ruled out because stg_orders is unchanged and fct_orders is the only changed model",
+          "Escalating to analytics_engineering as an intentional logic change: not chosen because the edit can't run at all and renames the column to the same output name (order_amount), so it looks like a mistake rather than planned business logic",
+          "Transient failure / rerun_only: ruled out because the error is a deterministic binder error"
+        ]
+      },
+      "proposal": {
+        "ts": 1792037758.3398807,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "fct_orders"
+            }
+          }
+        ],
+        "rationale": "fct_orders is the only model that differs from deployed; the undeployed edit replaced o.order_amount with o.order_total, a column that does not exist in stg_orders (stg_orders renames raw order_total to order_amount). Landing data and ingest config are unchanged, so this is a code regression, not upstream drift. Per runbook, revert the changed model.",
+        "evidence_ids": [
+          "log:248",
+          "log:251",
+          "model:changes",
+          "model:fct_orders",
+          "model:stg_orders",
+          "schema:staging.stg_orders",
+          "worker:1",
+          "worker:2",
+          "landing:orders@2026-10-01",
+          "config:ingest",
+          "worker:3",
+          "runbook:failed_jobs#model-errors-after-a-deploy",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "reverted models/marts/fct_orders.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 53.5,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.93,
+      "seconds": 53.5
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 17,
+    "cited_ids_total": 17,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 18,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 35655,
+        "output_tokens": 2215,
+        "api_equiv_usd": 0.1246
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 35863,
+        "output_tokens": 2905,
+        "api_equiv_usd": 0.0894
+      }
+    },
+    "api_equiv_usd": 0.214
+  }
+}

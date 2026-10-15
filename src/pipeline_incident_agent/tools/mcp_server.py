@@ -41,7 +41,7 @@ def tool_definitions(role: str, disabled: set[str] = frozenset()) -> list[types.
 def build_server(paths: SandboxPaths, trace: Trace, role: str, agent: str) -> Server:
     from ..agent.config import AgentConfig
 
-    disabled = AgentConfig.load(trace.dir).disabled()
+    disabled = AgentConfig.load(trace.dir).disabled_for(role)
 
     async def list_tools(ctx, params) -> types.ListToolsResult:
         return types.ListToolsResult(tools=tool_definitions(role, disabled))

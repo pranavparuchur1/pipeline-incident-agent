@@ -1,0 +1,190 @@
+{
+  "incident": "R1",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\R1-20261015-001123",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "d2b615c7-42c7-4ac1-be61-73151f6f8a76",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Run d2b615c7 (2026-10-01) failed in quality_checks because orders, order_items and payments each loaded only about 36% of their normal daily rows. The cause is a partial upstream export: the orders file is well-formed but has no orders after 08:57, and every sales channel dropped by a similar amount. The fix I've proposed is to ask upstream to re-export orders, order_items and payments for 2026-10-01 and then rerun the pipeline.",
+        "root_cause": {
+          "family": "row_count_drop",
+          "cause": "partial_export",
+          "table": "orders",
+          "column": null,
+          "model": null,
+          "explanation": "Upstream's 2026-10-01 export stopped partway through the day. Orders only cover 00:02 to 08:57, and nothing after 12:00 was delivered. orders, order_items and payments all dropped to 36% of their trailing median. Every channel shrank by a similar amount, which rules out a filter on one channel. The orders file parses cleanly and matches the contract, and ingest and dbt both succeeded, so the rows were missing from what upstream sent. The pipeline did not lose them."
+        },
+        "evidence": [
+          {
+            "claim": "quality_checks failed on the row_count_trend checks for raw.orders, raw.order_items and raw.payments; ingest and transform succeeded",
+            "evidence_ids": [
+              "run:d2b615c7",
+              "log:249",
+              "log:250",
+              "log:251",
+              "log:248"
+            ]
+          },
+          {
+            "claim": "All three tables are at 36% of their trailing 7-partition median",
+            "evidence_ids": [
+              "check:row_count_trend:raw.orders@live",
+              "check:row_count_trend:raw.order_items@live",
+              "check:row_count_trend:raw.payments@live"
+            ]
+          },
+          {
+            "claim": "Orders stop at 08:57, with none in the 12h and 18h buckets: the export was cut off partway through the day",
+            "evidence_ids": [
+              "sql:cc746756",
+              "chart:orders_by_hour"
+            ]
+          },
+          {
+            "claim": "Every channel dropped, so this is not a filter on one channel",
+            "evidence_ids": [
+              "chart:orders_by_channel"
+            ]
+          },
+          {
+            "claim": "The orders landing file has a valid header, matches the contract and has no parse errors; ingest loaded every row in the files",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "log:244",
+              "log:245",
+              "log:246"
+            ]
+          },
+          {
+            "claim": "The runbook says a similar drop across all three tables means a truncated or filtered export, and the fix is upstream redelivery",
+            "evidence_ids": [
+              "runbook:missing_data#step-1-which-tables-are-affected",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "filtered_export (one channel or segment dropped): ruled out because every channel dropped and orders stop at a clean time cutoff",
+          "bad_model_deploy: ruled out because the drop is already in the raw tables, before any dbt model runs, and the dbt build passed",
+          "corrupt_landing_file: ruled out because the file has no parse problems and its header matches the contract",
+          "real drop in business volume: unlikely, since orders stop abruptly at about 09:00 and all three related tables fell by exactly the same share",
+          "transient_failure / rerun_only: a rerun would reload the same incomplete files"
+        ]
+      },
+      "proposal": {
+        "ts": 1792037515.187167,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 export for orders, order_items and payments was cut off partway through the day. All three tables are at 36% of their trailing median. Orders only run from 00:02 to 08:57, with no orders at all from 12h onward. Every channel dropped. The files themselves are well-formed, so the data is missing at the source and only a redelivery can restore the rows. The runbook policy maps a partial row drop to request_upstream_redelivery for orders, order_items and payments.",
+        "evidence_ids": [
+          "check:row_count_trend:raw.orders@live",
+          "check:row_count_trend:raw.order_items@live",
+          "check:row_count_trend:raw.payments@live",
+          "chart:orders_by_hour",
+          "chart:orders_by_channel",
+          "sql:cc746756",
+          "landing:orders@2026-10-01",
+          "runbook:missing_data#step-1-which-tables-are-affected",
+          "runbook:remediation_policy#choosing-quickly",
+          "log:244",
+          "log:245",
+          "log:246"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 31.0,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 31.0
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 17,
+    "cited_ids_total": 17,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 9,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 96833,
+        "output_tokens": 2673,
+        "api_equiv_usd": 0.2498
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.2498
+  }
+}

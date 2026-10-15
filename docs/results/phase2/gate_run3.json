@@ -1,0 +1,469 @@
+[
+  {
+    "id": "S6",
+    "title": "payments.amount renamed to amount_usd upstream",
+    "trials": [
+      {
+        "kind": "break",
+        "fix": null,
+        "passed": true,
+        "detail": "failed_step=ingest (expected ingest)",
+        "seconds": 6.436999999998079
+      },
+      {
+        "kind": "true_fix",
+        "fix": [
+          [
+            "apply_column_mapping",
+            {
+              "table": "payments",
+              "source_column": "amount_usd",
+              "target_column": "amount"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "recovered | ingest now reads raw.payments.amount from upstream column 'amount_usd'",
+        "seconds": 11.453000000001339
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "request_upstream_redelivery",
+            {
+              "tables": [
+                "payments"
+              ],
+              "day": "{day}"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at ingest | upstream re-exported payments (417 rows) for 2026-10-01",
+        "seconds": 6.562999999994645
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "rerun_only",
+            {}
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at ingest | no change; the pipeline will simply be rerun",
+        "seconds": 6.75
+      }
+    ],
+    "passed": true
+  },
+  {
+    "id": "S7",
+    "title": "order_items.quantity now exported with a unit suffix ('2 units')",
+    "trials": [
+      {
+        "kind": "break",
+        "fix": null,
+        "passed": true,
+        "detail": "failed_step=ingest (expected ingest)",
+        "seconds": 6.968000000000757
+      },
+      {
+        "kind": "true_fix",
+        "fix": [
+          [
+            "escalate_to_owner",
+            {
+              "owner": "upstream_app_team",
+              "summary": "order_items export now writes quantity with a unit suffix (e.g. '2 units')"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at ingest | escalated to upstream_app_team: order_items export now writes quantity with a unit suffix (e.g. '2 units')",
+        "seconds": 6.8439999999973224
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "set_column_parser",
+            {
+              "table": "order_items",
+              "column": "quantity",
+              "parser": "strip_currency"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at ingest | ingest now parses raw.order_items.quantity with strip_currency",
+        "seconds": 7.094000000004598
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "request_upstream_redelivery",
+            {
+              "tables": [
+                "order_items"
+              ],
+              "day": "{day}"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at ingest | upstream re-exported order_items (840 rows) for 2026-10-01",
+        "seconds": 7.077999999994063
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "rerun_only",
+            {}
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at ingest | no change; the pipeline will simply be rerun",
+        "seconds": 6.922000000005937
+      }
+    ],
+    "passed": true
+  },
+  {
+    "id": "S8",
+    "title": "customers gained a new upstream column marketing_opt_in",
+    "trials": [
+      {
+        "kind": "break",
+        "fix": null,
+        "passed": true,
+        "detail": "failed_step=ingest (expected ingest)",
+        "seconds": 6.5939999999973224
+      },
+      {
+        "kind": "true_fix",
+        "fix": [
+          [
+            "ignore_extra_columns",
+            {
+              "table": "customers",
+              "columns": [
+                "marketing_opt_in"
+              ]
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "recovered | ingest now ignores upstream columns ['marketing_opt_in'] on raw.customers",
+        "seconds": 10.843000000000757
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "request_upstream_redelivery",
+            {
+              "tables": [
+                "customers"
+              ],
+              "day": "{day}"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at ingest | upstream re-exported customers (30 rows) for 2026-10-01",
+        "seconds": 7.078000000001339
+      }
+    ],
+    "passed": true
+  },
+  {
+    "id": "M4",
+    "title": "customers file for the day never arrived",
+    "trials": [
+      {
+        "kind": "break",
+        "fix": null,
+        "passed": true,
+        "detail": "failed_step=ingest (expected ingest)",
+        "seconds": 6.640999999995984
+      },
+      {
+        "kind": "true_fix",
+        "fix": [
+          [
+            "request_upstream_redelivery",
+            {
+              "tables": [
+                "customers"
+              ],
+              "day": "{day}"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "recovered | upstream re-exported customers (30 rows) for 2026-10-01",
+        "seconds": 10.31300000000192
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "rerun_only",
+            {}
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at ingest | no change; the pipeline will simply be rerun",
+        "seconds": 6.48399999999674
+      }
+    ],
+    "passed": true
+  },
+  {
+    "id": "D4",
+    "title": "payments export retried and appended: every payment appears twice",
+    "trials": [
+      {
+        "kind": "break",
+        "fix": null,
+        "passed": true,
+        "detail": "failed_step=quality_checks (expected quality_checks)",
+        "seconds": 11.187000000005355
+      },
+      {
+        "kind": "true_fix",
+        "fix": [
+          [
+            "request_upstream_redelivery",
+            {
+              "tables": [
+                "payments"
+              ],
+              "day": "{day}"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "recovered | upstream re-exported payments (417 rows) for 2026-10-01",
+        "seconds": 10.515999999995984
+      },
+      {
+        "kind": "true_fix",
+        "fix": [
+          [
+            "deduplicate_on_ingest",
+            {
+              "table": "payments",
+              "key": "payment_id"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "recovered | ingest now keeps one row per payment_id when loading raw.payments",
+        "seconds": 10.75
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "rerun_only",
+            {}
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at quality_checks; failed checks ['assert_payments_match_orders', 'freshness:marts.fct_orders', 'not_null_fct_orders_order_id.4e687af8d0', 'reconciliation:raw.orders->marts.fct_orders'] | no change; the pipeline will simply be rerun",
+        "seconds": 10.531000000002678
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "deduplicate_on_ingest",
+            {
+              "table": "orders",
+              "key": "order_id"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at quality_checks; failed checks ['assert_payments_match_orders', 'freshness:marts.fct_orders', 'not_null_fct_orders_order_id.4e687af8d0', 'reconciliation:raw.orders->marts.fct_orders'] | ingest now keeps one row per order_id when loading raw.orders",
+        "seconds": 9.860000000000582
+      }
+    ],
+    "passed": true
+  },
+  {
+    "id": "F4",
+    "title": "bad deploy: dim_customers.sql selects a column that does not exist",
+    "trials": [
+      {
+        "kind": "break",
+        "fix": null,
+        "passed": true,
+        "detail": "failed_step=transform (expected transform)",
+        "seconds": 10.125
+      },
+      {
+        "kind": "true_fix",
+        "fix": [
+          [
+            "revert_model_change",
+            {
+              "model": "dim_customers"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "recovered | reverted models/marts/dim_customers.sql to the deployed version",
+        "seconds": 10.375
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "revert_model_change",
+            {
+              "model": "stg_customers"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at transform | reverted models/staging/stg_customers.sql to the deployed version (it was unchanged)",
+        "seconds": 11.389999999999418
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "rerun_only",
+            {}
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at transform | no change; the pipeline will simply be rerun",
+        "seconds": 10.235000000000582
+      }
+    ],
+    "passed": true
+  },
+  {
+    "id": "F5",
+    "title": "bad deploy: stg_payments renamed amount, breaking fct_orders downstream",
+    "trials": [
+      {
+        "kind": "break",
+        "fix": null,
+        "passed": true,
+        "detail": "failed_step=quality_checks (expected quality_checks)",
+        "seconds": 10.60899999999674
+      },
+      {
+        "kind": "true_fix",
+        "fix": [
+          [
+            "revert_model_change",
+            {
+              "model": "stg_payments"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "recovered | reverted models/staging/stg_payments.sql to the deployed version",
+        "seconds": 10.906000000002678
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "revert_model_change",
+            {
+              "model": "fct_orders"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at quality_checks; failed checks ['assert_payments_match_orders', 'freshness:marts.fct_orders', 'not_null_fct_orders_order_id.4e687af8d0', 'not_null_stg_payments_amount.4739fb3aea'] | reverted models/marts/fct_orders.sql to the deployed version (it was unchanged)",
+        "seconds": 10.735000000000582
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "rerun_only",
+            {}
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at quality_checks; failed checks ['assert_payments_match_orders', 'freshness:marts.fct_orders', 'not_null_fct_orders_order_id.4e687af8d0', 'not_null_stg_payments_amount.4739fb3aea'] | no change; the pipeline will simply be rerun",
+        "seconds": 11.296999999998661
+      }
+    ],
+    "passed": true
+  },
+  {
+    "id": "R3",
+    "title": "upstream filter bug: only 'web' orders delivered (app, marketplace missing)",
+    "trials": [
+      {
+        "kind": "break",
+        "fix": null,
+        "passed": true,
+        "detail": "failed_step=quality_checks (expected quality_checks)",
+        "seconds": 11.093000000000757
+      },
+      {
+        "kind": "true_fix",
+        "fix": [
+          [
+            "request_upstream_redelivery",
+            {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "{day}"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "recovered | upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01",
+        "seconds": 10.203000000001339
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "rerun_only",
+            {}
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at quality_checks; failed checks ['row_count_trend:raw.order_items', 'row_count_trend:raw.orders', 'row_count_trend:raw.payments'] | no change; the pipeline will simply be rerun",
+        "seconds": 9.953999999997905
+      },
+      {
+        "kind": "decoy",
+        "fix": [
+          [
+            "request_upstream_redelivery",
+            {
+              "tables": [
+                "orders"
+              ],
+              "day": "{day}"
+            }
+          ]
+        ],
+        "passed": true,
+        "detail": "run failed at quality_checks; failed checks ['assert_payments_match_orders', 'freshness:marts.fct_orders', 'not_null_fct_orders_order_id.4e687af8d0', 'reconciliation:raw.orders->marts.fct_orders'] | upstream re-exported orders (440 rows) for 2026-10-01",
+        "seconds": 11.468000000000757
+      }
+    ],
+    "passed": true
+  }
+]

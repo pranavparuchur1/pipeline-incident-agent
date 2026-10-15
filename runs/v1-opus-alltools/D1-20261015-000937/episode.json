@@ -1,0 +1,176 @@
+{
+  "incident": "D1",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\D1-20261015-000937",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "68309ded-f7c5-4db5-8ad5-2e0d37f0846a",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Run 68309ded for 2026-10-01 failed because the orders file had every order twice: 880 rows but only 440 distinct order_ids. Both copies of each order are identical, all are dated that day, and none of the ids appear on any other day. That fails the order_id uniqueness test, the row-count trend check and the reconciliation check. Proposed fix (not yet applied): keep one row per order_id when loading orders, then rerun.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "duplicate_rows_in_file",
+          "table": "orders",
+          "column": "order_id",
+          "model": null,
+          "explanation": "The upstream orders export for 2026-10-01 has each of 440 orders written twice, with both copies identical. Staging does not remove duplicates, so stg_orders failed its uniqueness test, the downstream fct_orders tests were skipped, and the mart got no 2026-10-01 rows. None of the duplicated ids exist in other partitions and all timestamps are on the partition day, so this is duplication inside one file (runbook Cause A), not old rows being sent again."
+        },
+        "evidence": [
+          {
+            "claim": "quality_checks failed on order_id uniqueness, order totals, raw.orders volume (191% of median), fct_orders freshness and reconciliation (440 distinct raw orders vs 0 in fct_orders)",
+            "evidence_ids": [
+              "log:248",
+              "log:249",
+              "log:264",
+              "log:265",
+              "log:266",
+              "check:unique_stg_orders_order_id.e3b841c71a@68309ded",
+              "check:row_count_trend:raw.orders@live",
+              "check:reconciliation:raw.orders->marts.fct_orders@live"
+            ]
+          },
+          {
+            "claim": "The landing file has 880 rows, its header matches the contract and it has no parse problems",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "schema:raw.orders"
+            ]
+          },
+          {
+            "claim": "All 440 order_ids appear exactly twice with identical values, all on 2026-10-01, and none appear in other partitions",
+            "evidence_ids": [
+              "sql:b26671b9"
+            ]
+          },
+          {
+            "claim": "No dbt models differ from the deployed version",
+            "evidence_ids": [
+              "model:changes"
+            ]
+          },
+          {
+            "claim": "The runbook treats identical duplicates inside one file as Cause A, fixed with deduplicate_on_ingest on the primary key",
+            "evidence_ids": [
+              "runbook:duplicates#how-to-distinguish",
+              "runbook:duplicates#remedy",
+              "runbook:duplicates#choosing-the-dedupe-key"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Old rows sent again from a previous day (Cause B): ruled out because no ids overlap other partitions and all timestamps are on the partition day",
+          "Bad model deploy: ruled out because no dbt models changed",
+          "Genuine traffic spike: ruled out because there are only 440 distinct orders, a normal volume",
+          "Upstream redelivery: possible, but the runbook prescribes dedupe at ingest for identical copies inside one file"
+        ]
+      },
+      "proposal": {
+        "ts": 1792037408.6380925,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "deduplicate_on_ingest",
+            "params": {
+              "table": "orders",
+              "key": "order_id"
+            }
+          }
+        ],
+        "rationale": "The orders landing file for 2026-10-01 has 880 rows but only 440 distinct order_ids. Every order_id appears exactly twice, and both copies match on every contract column. All timestamps fall on 2026-10-01, and none of these ids appear in any other partition. Per the runbook this is Cause A (identical copies within the file), and the fix for that is deduplicate_on_ingest on the primary key order_id. No dbt models changed, and the other tables pass their uniqueness and volume checks.",
+        "evidence_ids": [
+          "landing:orders@2026-10-01",
+          "sql:b26671b9",
+          "check:unique_stg_orders_order_id.e3b841c71a@68309ded",
+          "check:row_count_trend:raw.orders@live",
+          "check:reconciliation:raw.orders->marts.fct_orders@live",
+          "log:249",
+          "model:changes",
+          "runbook:duplicates#how-to-distinguish",
+          "runbook:duplicates#remedy",
+          "runbook:duplicates#choosing-the-dedupe-key"
+        ]
+      },
+      "applied": [
+        "ingest now keeps one row per order_id when loading raw.orders"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 33.4,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 33.4
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 15,
+    "cited_ids_total": 15,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 10,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 129912,
+        "output_tokens": 3285,
+        "api_equiv_usd": 0.2792
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.2792
+  }
+}

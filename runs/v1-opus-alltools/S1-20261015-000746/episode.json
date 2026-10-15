@@ -1,0 +1,168 @@
+{
+  "incident": "S1",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\S1-20261015-000746",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "23f94fc0-e495-43e4-80a2-3a949f0ccefe",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (run 23f94fc0) failed at ingest because upstream renamed the orders column `order_total` to `total_amount`. The values look unchanged: plain decimals on the same scale as before. Proposed fix: map `total_amount` to `order_total` at ingest (apply_column_mapping), then rerun the partition.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_renamed",
+          "table": "orders",
+          "column": "order_total",
+          "model": null,
+          "explanation": "The upstream orders.csv for 2026-10-01 has a header with `total_amount` where the contract expects `order_total`. Ingest's header check against the contract therefore failed with a schema mismatch. The values are plain decimals with no currency symbol and sit on the same scale as recent order_total values, so the meaning appears unchanged."
+        },
+        "evidence": [
+          {
+            "claim": "Run 23f94fc0 failed at ingest: schema mismatch on raw.orders, missing order_total, unexpected total_amount",
+            "evidence_ids": [
+              "run:23f94fc0",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The landing file has 440 rows, `total_amount` replaces `order_total` in the header, there are no parse problems, and values are plain decimals",
+            "evidence_ids": [
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "Recent order_total values are on the same scale (min 4.99, avg ~102), consistent with the landing values",
+            "evidence_ids": [
+              "sql:c4e511a4"
+            ]
+          },
+          {
+            "claim": "No column mappings are configured today",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says to handle a same-meaning rename with apply_column_mapping",
+            "evidence_ids": [
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:schema_changes#how-ingest-detects-them"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Format or type change, e.g. currency strings: ruled out because the values are plain decimals and the file has no parse problems",
+          "Rename that also changed units (e.g. cents): ruled out because the value scale matches recent history",
+          "One-off bad export needing redelivery: unlikely, since the file is complete and well-formed; this looks like a deliberate rename",
+          "dbt model change: not relevant, since the failure is at ingest, before transform"
+        ]
+      },
+      "proposal": {
+        "ts": 1792037289.8895614,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "apply_column_mapping",
+            "params": {
+              "table": "orders",
+              "source_column": "total_amount",
+              "target_column": "order_total"
+            }
+          }
+        ],
+        "rationale": "Upstream renamed orders.order_total to total_amount in the 2026-10-01 export. The values look the same as before: plain decimals with no currency symbol, and the same scale as recent order_total values (min 4.99 matches exactly). The runbook says to handle a same-meaning rename with apply_column_mapping at ingest. The ingest config is currently empty, so this one mapping fixes the ingest failure, and the harness reruns the partition.",
+        "evidence_ids": [
+          "log:243",
+          "run:23f94fc0",
+          "landing:orders@2026-10-01",
+          "config:ingest",
+          "sql:c4e511a4",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:schema_changes#how-ingest-detects-them"
+        ]
+      },
+      "applied": [
+        "ingest now reads raw.orders.order_total from upstream column 'total_amount'"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 25.0,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 25.0
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 7,
+    "cited_ids_total": 7,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 7,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 41263,
+        "output_tokens": 1986,
+        "api_equiv_usd": 0.1301
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1301
+  }
+}

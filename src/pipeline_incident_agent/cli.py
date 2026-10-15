@@ -191,3 +191,40 @@ def agent_run(
     from pipeline_incident_agent.sandbox.config import default_paths
 
     run_ids(incidents.split(","), PRESETS[config], default_paths())
+
+
+eval_app = typer.Typer(help="Evaluate the agent", no_args_is_help=True)
+app.add_typer(eval_app, name="eval")
+
+
+@eval_app.command("run")
+def eval_run(
+    set_name: str = typer.Option("held-out", "--set", help="dev | held-out"),
+    config: str = typer.Option("opus+sonnet"),
+    only_missing: bool = typer.Option(True, help="skip incidents that already have an episode for this config"),
+) -> None:
+    """Run the agent on every incident of a set (sequentially; each episode is saved under runs/)."""
+    from pipeline_incident_agent.agent.config import PRESETS
+    from pipeline_incident_agent.agent.episode import run_ids
+    from pipeline_incident_agent.eval.report import SETS, latest_episodes
+    from pipeline_incident_agent.sandbox.config import default_paths
+
+    ids = SETS[set_name]
+    if only_missing:
+        done = latest_episodes(config, ids)
+        ids = [i for i in ids if i not in done]
+    print(f"{config}: running {len(ids)} incidents: {ids}")
+    run_ids(ids, PRESETS[config], default_paths())
+
+
+@eval_app.command("report")
+def eval_report(
+    set_name: str = typer.Option("held-out", "--set"),
+    configs: str = typer.Option("opus+sonnet,sonnet-only,opus-solo,opus+sonnet-noimg"),
+) -> None:
+    """Aggregate metrics into docs/results/eval/metrics_<set>.md/.json."""
+    from pipeline_incident_agent.eval.report import write
+    from pipeline_incident_agent.sandbox.config import REPO_ROOT
+
+    f = write(configs.split(","), set_name, REPO_ROOT / "docs" / "results" / "eval")
+    print(f.read_text(encoding="utf-8"))

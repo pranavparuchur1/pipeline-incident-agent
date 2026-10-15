@@ -40,3 +40,6 @@ src = ["src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/pipeline_incident_agent/eval/report.py" = ["E501"]  # one-line metric/format tables read better unwrapped

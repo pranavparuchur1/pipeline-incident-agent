@@ -171,7 +171,7 @@ def call_tool(paths: SandboxPaths, trace: Trace, role: str, name: str, args: dic
         raise PermissionDenied(f"role {role!r} may not call {name!r}")
     from ..agent.config import AgentConfig
 
-    if name in AgentConfig.load(trace.dir).disabled():
+    if name in AgentConfig.load(trace.dir).disabled_for(role):
         trace.append({"type": "denied", "role": role, "tool": name, "args": args, "reason": "disabled"})
         raise PermissionDenied(f"tool {name!r} is disabled in this configuration")
     spec = TOOLS[name]
