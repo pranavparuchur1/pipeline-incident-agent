@@ -2,7 +2,7 @@
 
 Roles (least privilege):
   worker  read-only investigation tools
-  master  the same, plus propose_fix
+  master  the same, plus delegate (start a worker session) and propose_fix
 
 propose_fix does not touch the sandbox. It validates the proposal against the remediation
 allow-list, checks that every cited evidence id was actually returned by a tool earlier in this
@@ -137,6 +137,14 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("search_runbooks", "read", inv.search_runbooks,
                  "Keyword search over the team's runbooks and architecture docs.",
                  {"query": _s("what you are looking for"), "k": _i("sections to return", 3)}, ("query",)),
+        ToolSpec("delegate", "delegate", lambda *a, **k: None,
+                 "Hand a focused evidence-gathering task to a worker (a separate, cheaper read-only session). "
+                 "Returns its findings with evidence ids. Workers: log_analyst, source_inspector, data_profiler, "
+                 "change_auditor, runbook_researcher.",
+                 {"worker": _s("worker type", enum=["log_analyst", "source_inspector", "data_profiler",
+                                                     "change_auditor", "runbook_researcher"]),
+                  "task": _s("a specific question or instruction, with any ids/dates it needs")},
+                 ("worker", "task")),
         ToolSpec("propose_fix", "remediate", propose_fix,
                  "Propose the remediation (a sequence of allow-listed actions) with rationale and the evidence ids "
                  "that support it. Does not apply anything; the harness applies and verifies it afterwards.",
@@ -161,10 +169,19 @@ def call_tool(paths: SandboxPaths, trace: Trace, role: str, name: str, args: dic
     if name not in ROLES[role]:
         trace.append({"type": "denied", "role": role, "tool": name, "args": args})
         raise PermissionDenied(f"role {role!r} may not call {name!r}")
+    from ..agent.config import AgentConfig
+
+    if name in AgentConfig.load(trace.dir).disabled():
+        trace.append({"type": "denied", "role": role, "tool": name, "args": args, "reason": "disabled"})
+        raise PermissionDenied(f"tool {name!r} is disabled in this configuration")
     spec = TOOLS[name]
     t0 = time.monotonic()
     try:
-        if name == "propose_fix":
+        if name == "delegate":
+            from ..agent.workers import run_worker
+
+            result = run_worker(paths, trace, **args)
+        elif name == "propose_fix":
             result = spec.fn(paths, trace, **args)
         elif name == "render_chart":
             result = spec.fn(paths, **args, out_dir=trace.dir / "charts")

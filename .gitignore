@@ -19,3 +19,4 @@ dbt_project/target/
 dbt_project/logs/
 .dagster/
 sandbox/snapshots/
+sandbox/agent/

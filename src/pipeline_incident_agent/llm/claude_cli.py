@@ -53,6 +53,18 @@ class LLMResult:
     duration_ms: int
     num_turns: int
     raw: dict = field(repr=False, default_factory=dict)
+    events: list[dict] = field(repr=False, default_factory=list)  # full stream-json transcript
+
+    def tool_uses(self) -> list[dict]:
+        """Every tool call the model made during this session, in order."""
+        out = []
+        for ev in self.events:
+            if ev.get("type") != "assistant":
+                continue
+            for block in ev.get("message", {}).get("content", []):
+                if block.get("type") == "tool_use":
+                    out.append({"name": block.get("name"), "input": block.get("input")})
+        return out
 
 
 def find_claude_binary() -> str:
@@ -125,7 +137,16 @@ class ClaudeCLI:
         self.workdir.mkdir(parents=True, exist_ok=True)
         self.timeout_s = timeout_s
 
-    def command(self, model: str, system_prompt: str, json_schema: dict | None, effort: str | None) -> list[str]:
+    def command(
+        self,
+        model: str,
+        system_prompt: str,
+        json_schema: dict | None,
+        effort: str | None,
+        mcp_config: Path | None = None,
+        allowed_tools: list[str] | None = None,
+        max_turns: int | None = None,
+    ) -> list[str]:
         cmd = [
             self.binary, "-p",
             "--model", model,
@@ -142,6 +163,13 @@ class ClaudeCLI:
             cmd += ["--json-schema", json.dumps(json_schema)]
         if effort:
             cmd += ["--effort", effort]
+        if mcp_config is not None:
+            # --tools "" disables Claude Code's built-in tools; MCP tools still need explicit permission
+            # in headless mode, so exactly the role's tools are allow-listed and nothing else.
+            cmd += ["--mcp-config", str(mcp_config)]
+            cmd += ["--allowedTools", ",".join(allowed_tools or [])]
+        if max_turns:
+            cmd += ["--max-turns", str(max_turns)]
         return cmd
 
     def run(
@@ -153,23 +181,28 @@ class ClaudeCLI:
         images: list[Path] | None = None,
         json_schema: dict | None = None,
         effort: str | None = None,
+        mcp_config: Path | None = None,
+        allowed_tools: list[str] | None = None,
+        max_turns: int | None = None,
+        timeout_s: float | None = None,
     ) -> LLMResult:
         env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
         stdin = json.dumps(build_user_message(prompt, images)) + "\n"
         started = time.monotonic()
         proc = subprocess.run(
-            self.command(model, system_prompt, json_schema, effort),
+            self.command(model, system_prompt, json_schema, effort, mcp_config, allowed_tools, max_turns),
             input=stdin,
             capture_output=True,
             text=True,
             encoding="utf-8",
             env=env,
             cwd=self.workdir,
-            timeout=self.timeout_s,
+            timeout=timeout_s or self.timeout_s,
         )
         if proc.returncode != 0 and '"type":"result"' not in proc.stdout:
             raise ClaudeCLIError(f"claude exited {proc.returncode}: {proc.stderr[-800:] or proc.stdout[-800:]}")
         result = to_llm_result(parse_result_event(proc.stdout), model)
+        result.events = [json.loads(ln) for ln in proc.stdout.splitlines() if ln.strip().startswith("{")]
         if not result.duration_ms:
             result.duration_ms = int((time.monotonic() - started) * 1000)
         return result

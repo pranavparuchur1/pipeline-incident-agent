@@ -15,6 +15,7 @@ dependencies = [
     "dbt-duckdb>=1.11.0",
     "duckdb>=1.5.6",
     "matplotlib>=3.11.2",
+    "mcp>=2.3.0",
     "pydantic>=2.14.1",
     "python-dotenv>=1.2.4",
     "typer>=0.27.3",
