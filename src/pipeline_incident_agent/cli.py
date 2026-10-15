@@ -228,3 +228,12 @@ def eval_report(
 
     f = write(configs.split(","), set_name, REPO_ROOT / "docs" / "results" / "eval")
     print(f.read_text(encoding="utf-8"))
+
+
+@app.command("dashboard")
+def dashboard_export() -> None:
+    """Export recorded episodes to dashboard/data.json (open dashboard/index.html; no model calls)."""
+    from pipeline_incident_agent.dashboard.export import export
+
+    f = export()
+    print(f"wrote {f} ({f.stat().st_size // 1024} KB)")
