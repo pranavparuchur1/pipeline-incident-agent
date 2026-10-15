@@ -30,6 +30,10 @@ Tools, permissions, runbooks and the MCP bridge to headless Claude sessions.
 
 Script: `uv run python scripts/phase3_live_check.py` (single run; model outputs vary run to run).
 
+Note on the split: the chart check used R2, which is in the held-out set (the split was fixed shortly before).
+It exercised one worker's tool use only; no prompt or code was changed in response, so it isn't tuning on
+held-out data, but strictly it is one look at a held-out incident.
+
 ## Found along the way
 
 - mcp 2.x removed the decorator-style low-level API (`@server.list_tools()`); handlers are now constructor

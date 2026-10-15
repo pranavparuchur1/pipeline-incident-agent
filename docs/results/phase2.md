@@ -16,9 +16,9 @@ For every incident, from a fresh restore of the baseline:
 |---|---|---|---|---|
 | Pass 1 (original 16) | 16/16 | 59/59 | 1,107 s | [gate_run1.log](phase2/gate_run1.log) |
 | Pass 2 (all 24, incl. 8 new) | 24/24 | 91/91 | 808 s | [gate_run2.log](phase2/gate_run2.log) |
-| Pass 3 (the 8 new incidents again) | see [gate_run3.log](phase2/gate_run3.log) | | | |
+| Pass 3 (the 8 new incidents again) | 8/8 | 32/32 | 296 s | [gate_run3.log](phase2/gate_run3.log) |
 
-Trial durations differ between passes because other work shared the CPU.
+Every incident has passed the gate in two separate passes. Trial durations differ between passes because other work shared the CPU.
 
 ## What the first attempt caught
 
