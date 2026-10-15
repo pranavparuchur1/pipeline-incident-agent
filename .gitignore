@@ -20,3 +20,4 @@ dbt_project/logs/
 .dagster/
 sandbox/snapshots/
 sandbox/agent/
+runs/**/mcp_*.json
