@@ -9,6 +9,7 @@ state and the agent gets one more attempt with the verification result as feedba
 from __future__ import annotations
 
 import json
+import shutil
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -27,6 +28,12 @@ from .config import AgentConfig
 from .master import run_master
 
 RUNS_DIR = REPO_ROOT / "runs"
+
+
+class InfrastructureError(RuntimeError):
+    """The sandbox or the CLI failed; the episode is discarded, never graded."""
+
+
 MAX_ATTEMPTS = 2
 
 
@@ -86,6 +93,11 @@ def run_episode(paths: SandboxPaths, incident: Incident, cfg: AgentConfig, out_r
     restore(paths, BASELINE)
     incident.inject(paths, day)
     run = run_pipeline(paths, day)
+    if run.run_id == "none" or run.success:
+        # The pipeline process itself crashed (or the incident didn't break anything): there is nothing valid to
+        # page about, and grading the agent on it would record a failure that isn't the agent's.
+        shutil.rmtree(trace_dir, ignore_errors=True)
+        raise InfrastructureError(f"{incident.id}: incident run did not produce a valid failure: {run.error}")
     alert = {"partition": str(day), "run_id": run.run_id, "failed_step": run.failed_step, "success": run.success}
     trace.append({"type": "episode_start", "config": cfg.name, "alert": alert})
     ep = Episode(incident.id, cfg.name, str(trace_dir.relative_to(REPO_ROOT)), alert)
@@ -214,6 +226,9 @@ class UsageLimitReached(RuntimeError):
 
 
 _LIMIT_MARKERS = ("usage limit", "rate limit", "limit reached", "429", "overloaded", "failed to authenticate")
+# The CLI process died or produced no result: an infrastructure failure, not an agent failure. (An agent that runs
+# out of turns returns a proper result event and *is* graded.)
+_INFRA_MARKERS = ("claude exited", "no result event", "timed out", "timeout")
 
 
 def run_ids(ids: list[str], cfg: AgentConfig, paths: SandboxPaths) -> list[Episode]:
@@ -221,13 +236,13 @@ def run_ids(ids: list[str], cfg: AgentConfig, paths: SandboxPaths) -> list[Episo
     for iid in ids:
         ep = run_episode(paths, BY_ID[iid], cfg)
         errs = " ".join(ep.grade.get("errors") or []).lower()
-        if any(m in errs for m in _LIMIT_MARKERS):
+        if any(m in errs for m in _LIMIT_MARKERS + _INFRA_MARKERS):
             # Not the agent's fault: discard the episode so it is rerun later, and stop the batch.
-            import shutil
-
             shutil.rmtree(REPO_ROOT / ep.trace_dir, ignore_errors=True)
             restore(paths, BASELINE)
-            raise UsageLimitReached(f"{iid}: {errs[:300]}")
+            raise (UsageLimitReached if any(m in errs for m in _LIMIT_MARKERS) else InfrastructureError)(
+                f"{iid}: {errs[:300]} (episode discarded; rerun later)"
+            )
         g = ep.grade
         print(f"{iid:<4} {cfg.name:<18} rc={'OK ' if g['first']['root_cause']['correct'] else 'BAD'} "
               f"decision={g['final']['decision']} recovered={g['final']['recovered']} attempts={g['attempts']} "
