@@ -50,6 +50,20 @@ class SandboxPaths:
         return self.root / "dbt_target"
 
     @property
+    def dbt_project(self) -> Path:
+        """The sandbox's own copy of the dbt project, so a bad deploy can be simulated and reverted."""
+        return self.root / "dbt_project"
+
+    @property
+    def ingest_config(self) -> Path:
+        return self.root / "config" / "ingest.json"
+
+    @property
+    def upstream_changes(self) -> Path:
+        """Persistent changes the upstream system has made to its exports (see upstream.py)."""
+        return self.root / "upstream" / "changes.json"
+
+    @property
     def snapshots(self) -> Path:
         return self.root.parent / "snapshots"
 
@@ -59,8 +73,17 @@ class SandboxPaths:
         return self.landing / table / f"dt={day.isoformat()}" / f"{table}.csv"
 
     def ensure(self) -> None:
-        for p in (self.landing, self.dagster_home, self.logs, self.dbt_target):
+        for p in (self.landing, self.dagster_home, self.logs, self.dbt_target, self.ingest_config.parent):
             p.mkdir(parents=True, exist_ok=True)
+        if not self.dbt_project.exists():
+            install_dbt_project(self.dbt_project)
+
+
+def install_dbt_project(dest: Path) -> None:
+    """Copy the repo's dbt project (the "deployed" version) into a sandbox."""
+    import shutil
+
+    shutil.copytree(DBT_PROJECT_DIR, dest, ignore=shutil.ignore_patterns("target", "logs", ".user.yml"))
 
 
 def default_paths() -> SandboxPaths:

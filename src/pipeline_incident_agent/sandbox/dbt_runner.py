@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from .config import DBT_PROJECT_DIR, SandboxPaths
+from .config import SandboxPaths
 
 
 @dataclass
@@ -38,8 +38,8 @@ def dbt_build(paths: SandboxPaths, select: str | None = None) -> DbtBuildResult:
     os.environ["PIA_WAREHOUSE"] = str(paths.warehouse)
     args = [
         "build",
-        "--project-dir", str(DBT_PROJECT_DIR),
-        "--profiles-dir", str(DBT_PROJECT_DIR),
+        "--project-dir", str(paths.dbt_project),
+        "--profiles-dir", str(paths.dbt_project),
         "--target-path", str(paths.dbt_target),
         "--log-path", str(paths.logs / "dbt"),
         "--quiet",

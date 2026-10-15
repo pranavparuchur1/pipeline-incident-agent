@@ -7,6 +7,7 @@ retyped upstream column fails loudly here instead of silently loading NULLs.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import date
 
@@ -76,9 +77,34 @@ def ensure_raw_tables(con: duckdb.DuckDBPyConnection) -> None:
         con.execute(f"create table if not exists raw.{table} ({ddl})")
 
 
-def _file_columns(con: duckdb.DuckDBPyConnection, path: str) -> list[str]:
-    rows = con.execute("describe select * from read_csv(?, header=true, hive_partitioning=false)", [path]).fetchall()
-    return [r[0] for r in rows]
+def _file_columns(path: str) -> list[str]:
+    """Read the header with the csv module rather than DuckDB's sniffer: a malformed file body can
+    make the sniffer guess the wrong delimiter and report a misleading schema mismatch."""
+    import csv
+
+    with open(path, encoding="utf-8", newline="") as f:
+        return next(csv.reader(f), [])
+
+
+def _varchar_columns(cols: list[str]) -> str:
+    return "{" + ", ".join(f"'{c}': 'VARCHAR'" for c in cols) + "}"
+
+
+PARSERS = {
+    # strip_currency: "$59.90" -> 59.90 (upstream started exporting formatted amounts)
+    "strip_currency": "replace(replace({col}, '$', ''), ',', '')",
+}
+
+
+def load_ingest_config(paths: SandboxPaths) -> dict:
+    """Per-table ingest settings that remediation actions may change (see remediation.py).
+
+    {"orders": {"rename": {"total_amount": "order_total"}, "parsers": {"order_total": "strip_currency"},
+                "ignore_columns": ["coupon_code"], "dedupe_key": "order_id"}}
+    """
+    if not paths.ingest_config.exists():
+        return {}
+    return json.loads(paths.ingest_config.read_text(encoding="utf-8"))
 
 
 def load_table(
@@ -89,15 +115,27 @@ def load_table(
         raise IngestError(f"landing file missing: {path.relative_to(paths.root).as_posix()}")
     src = str(path)
     contract = RAW_CONTRACT[table]
-    file_cols = _file_columns(con, src)
-    unexpected = [c for c in file_cols if c not in contract]
-    missing = [c for c in contract if c not in file_cols]
+    cfg = load_ingest_config(paths).get(table, {})
+    rename: dict[str, str] = cfg.get("rename", {})
+    ignore = set(cfg.get("ignore_columns", []))
+    file_cols = _file_columns(src)
+    # contract column -> the file column it is read from
+    source_of = {rename.get(c, c): c for c in file_cols if c not in ignore}
+    unexpected = [c for c in file_cols if c not in ignore and rename.get(c, c) not in contract]
+    missing = [c for c in contract if c not in source_of]
     if unexpected or missing:
         raise IngestError(
             f"schema mismatch loading raw.{table} from {path.name}: "
             f"missing columns {missing or '[]'}, unexpected columns {unexpected or '[]'}"
         )
-    select_cols = ", ".join(f"cast({c} as {t}) as {c}" for c, t in contract.items())
+    exprs = []
+    for col, typ in contract.items():
+        ref = f'"{source_of[col]}"'
+        if parser := cfg.get("parsers", {}).get(col):
+            ref = PARSERS[parser].format(col=ref)
+        exprs.append(f"cast({ref} as {typ}) as {col}")
+    dedupe = cfg.get("dedupe_key")
+    qualify = f' qualify row_number() over (partition by "{source_of[dedupe]}") = 1' if dedupe else ""
     con.execute("begin")
     try:
         if day is None:
@@ -106,8 +144,9 @@ def load_table(
             con.execute(f"delete from raw.{table} where _dt = ?", [day])
         con.execute(
             f"insert into raw.{table} by name "
-            f"select {select_cols}, ?::date as _dt, ? as _source_file, now()::timestamp as _loaded_at, ? as _run_id "
-            f"from read_csv(?, header=true, all_varchar=true, hive_partitioning=false)",
+            f"select {', '.join(exprs)}, ?::date as _dt, ? as _source_file, now()::timestamp as _loaded_at, "
+            f"? as _run_id from read_csv(?, header=true, hive_partitioning=false, delim=',', quote='\"', "
+            f"auto_detect=false, columns={_varchar_columns(file_cols)}){qualify}",
             [day, path.relative_to(paths.root).as_posix(), run_id, src],
         )
         rows = con.execute(

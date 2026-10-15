@@ -1,0 +1,77 @@
+[PASS] S1 orders.order_total renamed to total_amount upstream
+    ok  break     -> failed_step=ingest (expected ingest)  (25s)
+    ok  true_fix [["apply_column_mapping", {"table": "orders", "source_column": "total_amount", "target_column": "order_total"  -> recovered | ingest now reads raw.orders.order_total from upstream column 'total_amount'  (41s)
+    ok  decoy    [["request_upstream_redelivery", {"tables": ["orders"], "day": "{day}"}]]  -> run failed at ingest | upstream re-exported orders (440 rows) for 2026-10-01  (24s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at ingest | no change; the pipeline will simply be rerun  (24s)
+[PASS] S2 customers.country renamed to country_code upstream
+    ok  break     -> failed_step=ingest (expected ingest)  (26s)
+    ok  true_fix [["apply_column_mapping", {"table": "customers", "source_column": "country_code", "target_column": "country"}  -> recovered | ingest now reads raw.customers.country from upstream column 'country_code'  (45s)
+    ok  decoy    [["request_upstream_redelivery", {"tables": ["customers"], "day": "{day}"}]]  -> run failed at ingest | upstream re-exported customers (30 rows) for 2026-10-01  (28s)
+[PASS] S3 orders.order_total now exported as a currency string ('$59.90')
+    ok  break     -> failed_step=ingest (expected ingest)  (27s)
+    ok  true_fix [["set_column_parser", {"table": "orders", "column": "order_total", "parser": "strip_currency"}]]  -> recovered | ingest now parses raw.orders.order_total with strip_currency  (45s)
+    ok  decoy    [["request_upstream_redelivery", {"tables": ["orders"], "day": "{day}"}]]  -> run failed at ingest | upstream re-exported orders (440 rows) for 2026-10-01  (25s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at ingest | no change; the pipeline will simply be rerun  (23s)
+[PASS] S4 orders gained a new upstream column coupon_code
+    ok  break     -> failed_step=ingest (expected ingest)  (24s)
+    ok  true_fix [["ignore_extra_columns", {"table": "orders", "columns": ["coupon_code"]}]]  -> recovered | ingest now ignores upstream columns ['coupon_code'] on raw.orders  (39s)
+    ok  decoy    [["request_upstream_redelivery", {"tables": ["orders"], "day": "{day}"}]]  -> run failed at ingest | upstream re-exported orders (440 rows) for 2026-10-01  (24s)
+[PASS] S5 payments.method dropped upstream (no source for a required column)
+    ok  break     -> failed_step=ingest (expected ingest)  (24s)
+    ok  true_fix [["escalate_to_owner", {"owner": "upstream_app_team", "summary": "payments export no longer includes method"}  -> run failed at ingest | escalated to upstream_app_team: payments export no longer includes method  (24s)
+    ok  decoy    [["request_upstream_redelivery", {"tables": ["payments"], "day": "{day}"}]]  -> run failed at ingest | upstream re-exported payments (417 rows) for 2026-10-01  (25s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at ingest | no change; the pipeline will simply be rerun  (24s)
+[PASS] M1 orders file for the day never arrived
+    ok  break     -> failed_step=ingest (expected ingest)  (24s)
+    ok  true_fix [["request_upstream_redelivery", {"tables": ["orders"], "day": "{day}"}]]  -> recovered | upstream re-exported orders (440 rows) for 2026-10-01  (38s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at ingest | no change; the pipeline will simply be rerun  (25s)
+[PASS] M2 payments file arrived empty (header only)
+    ok  break     -> failed_step=quality_checks (expected quality_checks)  (40s)
+    ok  true_fix [["request_upstream_redelivery", {"tables": ["payments"], "day": "{day}"}]]  -> recovered | upstream re-exported payments (417 rows) for 2026-10-01  (42s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at quality_checks; failed checks ['assert_payments_match_orders', 'freshness:marts.fct_orders', 'not_null_fct_orders_order_id.4e687af8d0', 'partition_present:raw.payments'] | no change; the  (41s)
+[PASS] M3 order_items file for the day never arrived
+    ok  break     -> failed_step=ingest (expected ingest)  (25s)
+    ok  true_fix [["request_upstream_redelivery", {"tables": ["order_items"], "day": "{day}"}]]  -> recovered | upstream re-exported order_items (840 rows) for 2026-10-01  (20s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at ingest | no change; the pipeline will simply be rerun  (7s)
+[PASS] D1 orders export retried and appended: every order appears twice
+    ok  break     -> failed_step=quality_checks (expected quality_checks)  (11s)
+    ok  true_fix [["request_upstream_redelivery", {"tables": ["orders"], "day": "{day}"}]]  -> recovered | upstream re-exported orders (440 rows) for 2026-10-01  (11s)
+    ok  true_fix [["deduplicate_on_ingest", {"table": "orders", "key": "order_id"}]]  -> recovered | ingest now keeps one row per order_id when loading raw.orders  (11s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at quality_checks; failed checks ['assert_order_totals_match_items', 'freshness:marts.fct_orders', 'not_null_dim_customers_customer_id.dd91cd1c8d', 'not_null_fct_orders_order_id.4e687af8d0'  (11s)
+[PASS] D2 about 5% of order_items rows duplicated in the export
+    ok  break     -> failed_step=quality_checks (expected quality_checks)  (11s)
+    ok  true_fix [["request_upstream_redelivery", {"tables": ["order_items"], "day": "{day}"}]]  -> recovered | upstream re-exported order_items (840 rows) for 2026-10-01  (12s)
+    ok  true_fix [["deduplicate_on_ingest", {"table": "order_items", "key": "order_item_id"}]]  -> recovered | ingest now keeps one row per order_item_id when loading raw.order_items  (12s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at quality_checks; failed checks ['assert_order_totals_match_items', 'freshness:marts.fct_orders', 'not_null_fct_orders_order_id.4e687af8d0', 'reconciliation:raw.orders->marts.fct_orders']   (11s)
+    ok  decoy    [["deduplicate_on_ingest", {"table": "orders", "key": "order_id"}]]  -> run failed at quality_checks; failed checks ['assert_order_totals_match_items', 'freshness:marts.fct_orders', 'not_null_fct_orders_order_id.4e687af8d0', 'reconciliation:raw.orders->marts.fct_orders']   (11s)
+[PASS] D3 yesterday's orders re-sent inside today's orders file
+    ok  break     -> failed_step=quality_checks (expected quality_checks)  (11s)
+    ok  true_fix [["request_upstream_redelivery", {"tables": ["orders"], "day": "{day}"}]]  -> recovered | upstream re-exported orders (440 rows) for 2026-10-01  (11s)
+    ok  decoy    [["deduplicate_on_ingest", {"table": "orders", "key": "order_id"}]]  -> run failed at quality_checks; failed checks ['assert_order_totals_match_items', 'freshness:marts.fct_orders', 'not_null_dim_customers_customer_id.dd91cd1c8d', 'not_null_fct_orders_order_id.4e687af8d0'  (11s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at quality_checks; failed checks ['assert_order_totals_match_items', 'freshness:marts.fct_orders', 'not_null_dim_customers_customer_id.dd91cd1c8d', 'not_null_fct_orders_order_id.4e687af8d0'  (11s)
+[PASS] F1 bad deploy: fct_orders.sql selects a column that does not exist
+    ok  break     -> failed_step=transform (expected transform)  (11s)
+    ok  true_fix [["revert_model_change", {"model": "fct_orders"}]]  -> recovered | reverted models/marts/fct_orders.sql to the deployed version  (11s)
+    ok  decoy    [["revert_model_change", {"model": "stg_orders"}]]  -> run failed at transform | reverted models/staging/stg_orders.sql to the deployed version (it was unchanged)  (10s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at transform | no change; the pipeline will simply be rerun  (10s)
+[PASS] F2 bad deploy: stg_orders renamed order_amount, breaking every downstream mart
+    ok  break     -> failed_step=quality_checks (expected quality_checks)  (10s)
+    ok  true_fix [["revert_model_change", {"model": "stg_orders"}]]  -> recovered | reverted models/staging/stg_orders.sql to the deployed version  (10s)
+    ok  decoy    [["revert_model_change", {"model": "fct_orders"}]]  -> run failed at quality_checks; failed checks ['assert_order_totals_match_items', 'assert_payments_match_orders', 'freshness:marts.fct_orders', 'not_null_dim_customers_customer_id.dd91cd1c8d'] | reverte  (11s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at quality_checks; failed checks ['assert_order_totals_match_items', 'assert_payments_match_orders', 'freshness:marts.fct_orders', 'not_null_dim_customers_customer_id.dd91cd1c8d'] | no chan  (10s)
+[PASS] F3 orders file truncated mid-write (export crashed)
+    ok  break     -> failed_step=ingest (expected ingest)  (6s)
+    ok  true_fix [["request_upstream_redelivery", {"tables": ["orders"], "day": "{day}"}]]  -> recovered | upstream re-exported orders (440 rows) for 2026-10-01  (10s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at ingest | no change; the pipeline will simply be rerun  (6s)
+    ok  decoy    [["deduplicate_on_ingest", {"table": "orders", "key": "order_id"}]]  -> run failed at ingest | ingest now keeps one row per order_id when loading raw.orders  (6s)
+[PASS] R1 partial export: only orders placed before 09:00 were delivered
+    ok  break     -> failed_step=quality_checks (expected quality_checks)  (11s)
+    ok  true_fix [["request_upstream_redelivery", {"tables": ["orders", "order_items", "payments"], "day": "{day}"}]]  -> recovered | upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01  (11s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at quality_checks; failed checks ['row_count_trend:raw.order_items', 'row_count_trend:raw.orders', 'row_count_trend:raw.payments'] | no change; the pipeline will simply be rerun  (10s)
+    ok  decoy    [["request_upstream_redelivery", {"tables": ["orders"], "day": "{day}"}]]  -> run failed at quality_checks; failed checks ['assert_payments_match_orders', 'freshness:marts.fct_orders', 'not_null_fct_orders_order_id.4e687af8d0', 'reconciliation:raw.orders->marts.fct_orders'] | u  (10s)
+[PASS] R2 upstream filter bug: all 'web' channel orders missing from the export
+    ok  break     -> failed_step=quality_checks (expected quality_checks)  (10s)
+    ok  true_fix [["request_upstream_redelivery", {"tables": ["orders", "order_items", "payments"], "day": "{day}"}]]  -> recovered | upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01  (11s)
+    ok  decoy    [["rerun_only", {}]]  -> run failed at quality_checks; failed checks ['row_count_trend:raw.order_items', 'row_count_trend:raw.orders', 'row_count_trend:raw.payments'] | no change; the pipeline will simply be rerun  (10s)
+
+16/16 incidents passed; 59/59 trials; 1107s
