@@ -1,0 +1,172 @@
+{
+  "incident": "S2",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\S2-20261015-002051",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "64e31d6c-370c-42a9-874d-fee7cc69020e",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (run 64e31d6c) failed at ingest because upstream renamed the customers.csv column `country` to `country_code`. Nothing else in the file changed, and the visible values are still 2-letter country codes. I've proposed mapping `country_code` back to `country` at ingest and rerunning; asking upstream to resend wouldn't help, because the resent file would have the same header.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_renamed",
+          "table": "customers",
+          "column": "country",
+          "model": null,
+          "explanation": "Starting 2026-10-01, the upstream export of customers.csv calls the contract column `country` `country_code`. The values look unchanged (2-letter codes), and the other columns, their order and the row count all match. The ingest config is empty, so the strict schema check rejected the file."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed with a schema mismatch on raw.customers: `country` missing, `country_code` unexpected.",
+            "evidence_ids": [
+              "log:243",
+              "run:64e31d6c"
+            ]
+          },
+          {
+            "claim": "The 09-30 file matches the contract; the 10-01 file differs only by the renamed column, with the same row count and 2-letter code values.",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "landing:customers@2026-09-30",
+              "schema:raw.customers",
+              "sql:f952f281",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "No column mapping is configured, and no dbt models differ from the deployed version.",
+            "evidence_ids": [
+              "config:ingest",
+              "model:changes"
+            ]
+          },
+          {
+            "claim": "The runbook says to map a rename at ingest, not request redelivery.",
+            "evidence_ids": [
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:schema_changes#why-asking-upstream-to-resend-does-not-fix-this",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: rejected because a rename is a persistent change, so a resend would have the same header",
+          "escalate_to_upstream_app_team: not needed, because the values look unchanged (2-letter codes), so the meaning hasn't changed; only a sample of the 10-01 rows was checked",
+          "a bad model deploy: ruled out because no dbt models changed and the failure happened at ingest"
+        ]
+      },
+      "proposal": {
+        "ts": 1792038098.4573245,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "apply_column_mapping",
+            "params": {
+              "table": "customers",
+              "source_column": "country_code",
+              "target_column": "country"
+            }
+          }
+        ],
+        "rationale": "Starting 2026-10-01, upstream renamed customers.csv column 'country' to 'country_code'. Nothing else changed: the values are still 2-letter codes, the other columns and their order match the contract, and the row count is normal. Ingest has no mapping configured, so it rejected the file. The runbook says a rename with unchanged meaning should be mapped at ingest, not redelivered, because a resend would reproduce the same header. No dbt models changed.",
+        "evidence_ids": [
+          "log:243",
+          "run:64e31d6c",
+          "config:ingest",
+          "landing:customers@2026-10-01",
+          "landing:customers@2026-09-30",
+          "schema:raw.customers",
+          "sql:f952f281",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:schema_changes#why-asking-upstream-to-resend-does-not-fix-this",
+          "model:changes",
+          "worker:1",
+          "worker:2"
+        ]
+      },
+      "applied": [
+        "ingest now reads raw.customers.country from upstream column 'country_code'"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 48.2,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 48.2
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 12,
+    "cited_ids_total": 12,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 16,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 45913,
+        "output_tokens": 2136,
+        "api_equiv_usd": 0.1228
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 32352,
+        "output_tokens": 2903,
+        "api_equiv_usd": 0.0841
+      }
+    },
+    "api_equiv_usd": 0.2069
+  }
+}

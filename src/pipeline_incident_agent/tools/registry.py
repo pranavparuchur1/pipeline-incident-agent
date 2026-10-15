@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..sandbox.config import SandboxPaths
-from ..sandbox.remediation import ACTIONS
+from ..sandbox.remediation import ACTIONS, RemediationError, validate_action
 from . import investigate as inv
 from .investigate import Evidence, ToolError, ToolResult
 
@@ -86,6 +86,10 @@ def propose_fix(paths: SandboxPaths, trace: Trace, actions: list, rationale: str
         got = set(a.get("params") or {})
         if got != expected:
             raise ToolError(f"{a['action']} needs params {sorted(expected)}, got {sorted(got)}")
+        try:
+            validate_action(a["action"], a["params"])
+        except (RemediationError, TypeError) as e:
+            raise ToolError(f"{a['action']} rejected: {e}") from e
     seen = trace.evidence()
     unknown = [e for e in evidence_ids or [] if e not in seen]
     if not evidence_ids:

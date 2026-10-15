@@ -1,0 +1,82 @@
+{
+  "incident": "D4",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\D4-20261015-002357",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "none",
+    "failed_step": null,
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": null,
+      "proposal": null,
+      "applied": [],
+      "apply_error": null,
+      "recovered": false,
+      "verification": null,
+      "seconds": 0.0,
+      "error": "claude exited 3221225794: "
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": false,
+        "cause": false,
+        "target": false,
+        "targets": {
+          "table": false
+        },
+        "correct": false
+      },
+      "decision": null,
+      "recovered": false,
+      "confidence": null,
+      "seconds": 0.0
+    },
+    "final": {
+      "root_cause": {
+        "family": false,
+        "cause": false,
+        "target": false,
+        "targets": {
+          "table": false
+        },
+        "correct": false
+      },
+      "decision": null,
+      "recovered": false
+    },
+    "attempts": 1,
+    "correct_decision": false,
+    "false_remediations": 0,
+    "cited_ids_valid": 0,
+    "cited_ids_total": 0,
+    "errors": [
+      "claude exited 3221225794: "
+    ]
+  },
+  "usage": {
+    "llm_calls": 0,
+    "tool_calls": 0,
+    "by_role": {
+      "master": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0
+  }
+}

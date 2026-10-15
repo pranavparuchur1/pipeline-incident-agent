@@ -1,0 +1,181 @@
+{
+  "incident": "S1",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\S1-20261015-001657",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "f70b6840-f381-4e4b-ba7c-524ad998ad50",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run f70b6840 for 2026-10-01 failed at ingest because upstream renamed orders.order_total to total_amount. That rename is the only header change, and the format and meaning look the same in the rows I could check. I've proposed an ingest column mapping (orders: total_amount -> order_total), which still needs to be checked on the rerun. I found no upstream changelog; if this rename turns out not to be deliberate, tell the app team.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_renamed",
+          "table": "orders",
+          "column": "order_total",
+          "model": null,
+          "explanation": "Starting with the 2026-10-01 delivery, the upstream orders.csv has the column total_amount where the raw contract expects order_total. Ingest has no mapping (config is empty), so the schema check failed with 'missing order_total, unexpected total_amount'. The values look unchanged in the rows I could see: plain 2-decimal numbers, and totals equal to the sum of line items, as on 09-30. But only 2 orders on 10-01 were fully checked, because the inspect tool shows only a few lines of each file."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed for 2026-10-01: missing column order_total, unexpected column total_amount. The previous runs succeeded.",
+            "evidence_ids": [
+              "run:f70b6840",
+              "log:243",
+              "run:b62948b3"
+            ]
+          },
+          {
+            "claim": "No column mapping exists in the ingest config.",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The 10-01 header differs from the contract and the 09-30 file only by the order_total -> total_amount rename. The number format is unchanged.",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "On 09-30 every order_total equals the sum of its line items. In the few 10-01 rows that could be fully checked, total_amount matches the same way.",
+            "evidence_ids": [
+              "sql:feb0f893",
+              "landing:order_items@2026-10-01",
+              "worker:3"
+            ]
+          },
+          {
+            "claim": "The runbooks say a rename with the same meaning should be fixed with apply_column_mapping, not redelivery.",
+            "evidence_ids": [
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:remediation_policy#choosing-quickly",
+              "runbook:schema_changes#symptom-to-cause",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: rejected. A deliberate header rename is not a one-off delivery problem.",
+          "escalate_to_owner(upstream_app_team) over a possible change in meaning: not chosen. The format is unchanged and the checked totals equal the line-item sums, though only 2 orders on 10-01 were fully checked.",
+          "ignore_extra_columns(total_amount): rejected. It would leave the required order_total column missing.",
+          "The orders row count fell 4.6% (461 to 440): treated as normal daily variation. The items-per-order ratio is similar."
+        ]
+      },
+      "proposal": {
+        "ts": 1792037886.564426,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "apply_column_mapping",
+            "params": {
+              "table": "orders",
+              "source_column": "total_amount",
+              "target_column": "order_total"
+            }
+          }
+        ],
+        "rationale": "Upstream renamed orders.order_total to total_amount starting with the 2026-10-01 delivery. That is the only header difference, and the value format and meaning look unchanged: plain 2-decimal numbers, and the spot-checked totals equal the sum of their line items, as every order did on 09-30. The runbooks say a rename with unchanged meaning should be handled with apply_column_mapping, not redelivery. After the mapping, rerun the pipeline and confirm that order_total for 10-01 still matches the line-item sums.",
+        "evidence_ids": [
+          "run:f70b6840",
+          "log:243",
+          "config:ingest",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "landing:order_items@2026-10-01",
+          "sql:feb0f893",
+          "runbook:schema_changes#symptom-to-cause",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:remediation_policy#choosing-quickly",
+          "worker:1",
+          "worker:2",
+          "worker:3"
+        ]
+      },
+      "applied": [
+        "ingest now reads raw.orders.order_total from upstream column 'total_amount'"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 73.9,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 73.9
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 14,
+    "cited_ids_total": 14,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 22,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 49357,
+        "output_tokens": 2598,
+        "api_equiv_usd": 0.1475
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 65266,
+        "output_tokens": 5667,
+        "api_equiv_usd": 0.1398
+      }
+    },
+    "api_equiv_usd": 0.2873
+  }
+}

@@ -14,6 +14,7 @@ import json
 import re
 import shutil
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import date
 
@@ -22,6 +23,9 @@ from .ingest import PARSERS, RAW_CONTRACT, load_ingest_config
 from .upstream import redeliver
 
 _IDENT = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
+# Dry run: every validation runs, the three places that write state are skipped. Lets propose_fix reject
+# bad parameter values at proposal time, while the agent can still correct them.
+_DRY_RUN: ContextVar[bool] = ContextVar("remediation_dry_run", default=False)
 
 
 class RemediationError(ValueError):
@@ -58,6 +62,8 @@ def _day(value: str) -> date:
 
 
 def _update_ingest_config(paths: SandboxPaths, table: str, fn: Callable[[dict], None]) -> None:
+    if _DRY_RUN.get():
+        return
     cfg = load_ingest_config(paths)
     fn(cfg.setdefault(table, {}))
     paths.ingest_config.parent.mkdir(parents=True, exist_ok=True)
@@ -68,7 +74,10 @@ def request_upstream_redelivery(paths: SandboxPaths, tables: list[str], day: str
     d = _day(day)
     if not tables or not isinstance(tables, list):
         raise RemediationError("tables must be a non-empty list")
-    counts = {t: redeliver(paths, _table(t, event_only=True), d) for t in tables}
+    checked = [_table(t, event_only=True) for t in tables]
+    if _DRY_RUN.get():
+        return f"would ask upstream to re-export {checked} for {d}"
+    counts = {t: redeliver(paths, t, d) for t in checked}
     return f"upstream re-exported {', '.join(f'{t} ({n} rows)' for t, n in counts.items())} for {d}"
 
 
@@ -123,6 +132,8 @@ def revert_model_change(paths: SandboxPaths, model: str) -> str:
     if len(matches) != 1:
         raise RemediationError(f"unknown dbt model {m!r}")
     rel = matches[0].relative_to(DBT_PROJECT_DIR)
+    if _DRY_RUN.get():
+        return f"would revert {rel.as_posix()}"
     current = paths.dbt_project / rel
     changed = not current.exists() or current.read_bytes() != matches[0].read_bytes()
     shutil.copyfile(matches[0], current)
@@ -162,6 +173,15 @@ ACTIONS: dict[str, Action] = {
                False, escalate_to_owner),
     )
 }  # fmt: skip
+
+
+def validate_action(name: str, params: dict) -> str:
+    """Run every check an action would run, without changing anything. Raises RemediationError."""
+    token = _DRY_RUN.set(True)
+    try:
+        return apply_action(SandboxPaths(DBT_PROJECT_DIR.parent / "_dry_run_"), name, params)
+    finally:
+        _DRY_RUN.reset(token)
 
 
 def apply_action(paths: SandboxPaths, name: str, params: dict) -> str:

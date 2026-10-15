@@ -1,0 +1,269 @@
+{
+  "incident": "S3",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\S3-20261015-002157",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "8ca3bbbe-c17c-4f5c-aadf-b4f8399de53e",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "nightly run 8ca3bbbe (2026-10-01) failed at ingest: raw.orders could not convert order_total \"$4.99\" to DECIMAL(12,2), because upstream now writes order_total with a '$' prefix. The column names are unchanged and the amounts match payments, so we're adapting at ingest with the strip_currency parser on raw.orders.order_total, then rerunning.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_type_changed",
+          "table": "raw.orders",
+          "column": "order_total",
+          "model": null,
+          "explanation": "Upstream reformatted orders.order_total from plain numbers to '$'-prefixed strings (e.g. $4.99) starting with the 2026-10-01 delivery. The column names are unchanged and the meaning is the same (USD; payments amounts match). The default ingest cast to DECIMAL(12,2) fails."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed casting \"$4.99\" to DECIMAL(12,2) for raw.orders.order_total in run 8ca3bbbe; the prior runs succeeded",
+            "evidence_ids": [
+              "run:8ca3bbbe",
+              "log:243",
+              "run:b62948b3"
+            ]
+          },
+          {
+            "claim": "The 10-01 orders file has an unchanged header but '$'-prefixed order_total; 09-30 had plain numbers",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30",
+              "schema:raw.orders",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "Meaning unchanged: values are USD and payments amounts match the orders totals without the '$'; other tables are fine",
+            "evidence_ids": [
+              "landing:payments@2026-10-01",
+              "sql:b879d954",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The ingest config has no parser set",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "Runbook prescribes the strip_currency parser for currency-symbol reformatting; redelivery would not help",
+            "evidence_ids": [
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:remediation_policy#allow-listed-actions",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: rejected; this is a lasting format change, so a resent file would come back the same",
+          "column rename or added column: ruled out because the header matches the contract",
+          "bad dbt model deploy: ruled out because the failure is in ingest, before any dbt model runs",
+          "escalate to upstream_app_team: not needed because the meaning and units are unchanged; reconsider if non-USD or other formats show up in the file"
+        ]
+      },
+      "proposal": {
+        "ts": 1792038170.8314643,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "set_column_parser",
+            "params": {
+              "table": "raw.orders",
+              "column": "order_total",
+              "parser": "strip_currency"
+            }
+          }
+        ],
+        "rationale": "Upstream started writing orders.order_total with a '$' prefix on 2026-10-01 (header unchanged, values otherwise the same; payments amounts for the same orders match the numeric value), so the DECIMAL(12,2) cast at ingest fails. This looks like a lasting format change, so a redelivery would come back the same. Per runbook, adapt at ingest with the strip_currency parser on the contract column, then rerun the partition.",
+        "evidence_ids": [
+          "run:8ca3bbbe",
+          "log:243",
+          "config:ingest",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "landing:payments@2026-10-01",
+          "schema:raw.orders",
+          "worker:1",
+          "worker:2",
+          "runbook:schema_changes#symptom-to-cause",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform"
+        ]
+      },
+      "applied": [],
+      "apply_error": "invalid action: unknown table 'raw.orders'; expected one of ['products', 'customers', 'orders', 'order_items', 'payments']",
+      "recovered": false,
+      "verification": null,
+      "seconds": 61.6,
+      "error": null
+    },
+    {
+      "n": 2,
+      "diagnosis": {
+        "summary": "The nightly run 8ca3bbbe for 2026-10-01 failed at ingest. raw.orders could not convert order_total \"$4.99\" to DECIMAL(12,2) because upstream now puts '$' in front of order_total. Column names and the USD currency are unchanged. The earlier diagnosis still holds; its fix failed only because it named the table 'raw.orders' instead of 'orders'. I've proposed the strip_currency parser on orders.order_total again with the corrected name; it hasn't been applied or verified yet.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_type_changed",
+          "table": "raw.orders",
+          "column": "order_total",
+          "model": null,
+          "explanation": "Starting with the 2026-10-01 delivery, upstream writes orders.order_total with a '$' prefix (e.g. $4.99) instead of plain numbers. The header and the USD currency are unchanged. The ingest config is empty, so the default cast to DECIMAL(12,2) fails. The earlier remediation was right but used the table name 'raw.orders'; the allow-list expects 'orders'."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed casting \"$4.99\" to DECIMAL(12,2) for raw.orders.order_total in run 8ca3bbbe; the 09-30 run succeeded",
+            "evidence_ids": [
+              "run:8ca3bbbe",
+              "log:243",
+              "run:b62948b3"
+            ]
+          },
+          {
+            "claim": "The header is unchanged and matches the contract. In the lines the worker could see (first 3 and last of the 440 rows), 10-01 order_total has a '$' prefix and currency is USD; 09-30 had plain numbers",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30",
+              "schema:raw.orders",
+              "worker:3"
+            ]
+          },
+          {
+            "claim": "No ingest parser or mapping is configured",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The 10-01 files for the other inspected tables (customers, order_items, payments) match their contracts and have plain numeric amounts; products was not inspected",
+            "evidence_ids": [
+              "landing:payments@2026-10-01",
+              "landing:order_items@2026-10-01",
+              "landing:customers@2026-10-01",
+              "worker:3"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: rejected because this is a lasting format change, so a re-export would arrive in the same format",
+          "column rename or added column: ruled out because the header matches the contract",
+          "bad dbt model deploy: ruled out because the run failed at ingest, before any dbt model ran",
+          "escalate to upstream_app_team: not needed while values are '$'-prefixed USD. Only the first 3 and last of 440 rows were seen, so other formats could still exist; escalate if the rerun hits them"
+        ]
+      },
+      "proposal": {
+        "ts": 1792038214.7993803,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "set_column_parser",
+            "params": {
+              "table": "orders",
+              "column": "order_total",
+              "parser": "strip_currency"
+            }
+          }
+        ],
+        "rationale": "Upstream now writes '$' in front of orders.order_total (e.g. $4.99) starting with the 2026-10-01 delivery. The header, currency (USD) and the meaning of the values are unchanged. The ingest config has no parser, so the cast to DECIMAL(12,2) fails. Adding the strip_currency parser at ingest brings back the correct numbers. The previous proposal failed only because it named the table 'raw.orders'; the action expects the bare table name 'orders'.",
+        "evidence_ids": [
+          "run:8ca3bbbe",
+          "log:243",
+          "run:b62948b3",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "schema:raw.orders",
+          "config:ingest",
+          "landing:payments@2026-10-01",
+          "worker:3"
+        ]
+      },
+      "applied": [
+        "ingest now parses raw.orders.order_total with strip_currency"
+      ],
+      "apply_error": null,
+      "recovered": false,
+      "verification": {
+        "recovered": false,
+        "run_success": false,
+        "failed_step": null,
+        "error": "pipeline process crashed: ",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 39.9,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": false,
+      "confidence": 0.88,
+      "seconds": 61.6
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": false
+    },
+    "attempts": 2,
+    "correct_decision": true,
+    "false_remediations": 1,
+    "cited_ids_valid": 15,
+    "cited_ids_total": 15,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 5,
+    "tool_calls": 28,
+    "by_role": {
+      "master": {
+        "calls": 2,
+        "input_tokens": 69556,
+        "output_tokens": 4682,
+        "api_equiv_usd": 0.237
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 61015,
+        "output_tokens": 5488,
+        "api_equiv_usd": 0.1434
+      }
+    },
+    "api_equiv_usd": 0.3804
+  }
+}
