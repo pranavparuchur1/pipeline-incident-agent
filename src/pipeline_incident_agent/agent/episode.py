@@ -225,7 +225,10 @@ class UsageLimitReached(RuntimeError):
     pass
 
 
-_LIMIT_MARKERS = ("usage limit", "rate limit", "limit reached", "429", "overloaded", "failed to authenticate")
+_LIMIT_MARKERS = (
+    "session limit", "usage limit", "rate limit", "limit reached", "hit your", "resets ", "429", "overloaded",
+    "failed to authenticate",
+)  # fmt: skip
 # The CLI process died or produced no result: an infrastructure failure, not an agent failure. (An agent that runs
 # out of turns returns a proper result event and *is* graded.)
 _INFRA_MARKERS = ("claude exited", "no result event", "timed out", "timeout")
