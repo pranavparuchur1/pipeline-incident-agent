@@ -1,0 +1,173 @@
+{
+  "incident": "M1",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\M1-20261015-151904",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "c0c56e34-5f24-4a23-ab94-1822e85ff6e8",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run c0c56e34 for 2026-10-01 failed at ingest because upstream never delivered landing/orders/dt=2026-10-01/orders.csv. The customers, order_items and payments files for that day all arrived complete and match the contract, so this looks like a one-off export glitch for orders only. I've proposed asking upstream to re-export orders, order_items and payments for 2026-10-01 and then rerunning the partition.",
+        "root_cause": {
+          "family": "missing_partition",
+          "cause": "file_missing",
+          "table": "orders",
+          "column": null,
+          "model": null,
+          "explanation": "The upstream export did not write orders.csv for dt=2026-10-01. The partition directory exists and the other three tables for that day were delivered and parse cleanly, so the orders export failed on its own. Nothing points to a schema, model or environment problem. The previous two runs succeeded."
+        },
+        "evidence": [
+          {
+            "claim": "Run c0c56e34 failed at the ingest step because the orders landing file was missing; the previous runs succeeded",
+            "evidence_ids": [
+              "run:c0c56e34",
+              "run:b62948b3",
+              "run:0122e4b4",
+              "log:242",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "No orders.csv exists for dt=2026-10-01, although the partition directory exists",
+            "evidence_ids": [
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The other tables for 2026-10-01 were delivered, are well-formed and match the contract, so the export ran and only orders is missing",
+            "evidence_ids": [
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01",
+              "landing:customers@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The runbook says a missing landing file is fixed by redelivering the related order tables",
+            "evidence_ids": [
+              "runbook:missing_data#symptoms",
+              "runbook:missing_data#step-2-missing-file-vs-empty-file",
+              "runbook:remediation_policy#choosing-quickly",
+              "runbook:remediation_policy#principles"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "rerun_only: rejected because nothing shows the file has arrived since, and a rerun would fail the same way",
+          "Empty or partial file: ruled out because no file exists at all",
+          "Persistent upstream change or schema change: unlikely because the other tables match the contract and the prior day ran fine. If the redelivery also lacks orders, escalate to upstream_app_team",
+          "Redelivering orders only: rejected because policy says to redeliver all the related order tables (orders, order_items, payments) so they stay consistent"
+        ]
+      },
+      "proposal": {
+        "ts": 1792091990.872032,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The orders landing file for 2026-10-01 was never delivered, but the partition directory exists and the customers, order_items and payments files for that day are present, well-formed and match the contract. That points to a one-off export glitch for orders, not a deliberate upstream change. The runbook says to request redelivery of the related order tables (orders, order_items, payments) together so they stay consistent, then rerun.",
+        "evidence_ids": [
+          "run:c0c56e34",
+          "log:243",
+          "landing:orders@2026-10-01",
+          "landing:order_items@2026-10-01",
+          "landing:payments@2026-10-01",
+          "landing:customers@2026-10-01",
+          "runbook:missing_data#symptoms",
+          "runbook:missing_data#step-2-missing-file-vs-empty-file",
+          "runbook:remediation_policy#choosing-quickly",
+          "runbook:remediation_policy#principles"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 39.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 39.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 13,
+    "cited_ids_total": 13,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 10,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 45843,
+        "output_tokens": 2279,
+        "api_equiv_usd": 0.1328
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1328
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "incident": "M4",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\M4-20261015-160448",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "abaa7ebb-5711-47fc-ab29-615503f9c680",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run abaa7ebb for 2026-10-01 failed at ingest because the customers landing file was never delivered. The other tables arrived intact, and customers delivered normally the day before, so this looks like a one-off delivery gap. I proposed a redelivery request for customers on 2026-10-01 only.",
+        "root_cause": {
+          "family": "missing_partition",
+          "cause": "file_missing",
+          "table": "customers",
+          "column": null,
+          "model": null,
+          "explanation": "landing/customers/dt=2026-10-01/customers.csv is absent, so ingest raised IngestError. Orders, order_items and payments for the same day are intact, and customers delivered normally on 2026-09-30 with a header that matched the contract."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed because the customers landing file for 2026-10-01 is missing.",
+            "evidence_ids": [
+              "run:abaa7ebb",
+              "log:243",
+              "landing:customers@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The other three tables for 2026-10-01 arrived intact, and customers delivered normally on 2026-09-30. This is a one-off gap, not a format change.",
+            "evidence_ids": [
+              "landing:customers@2026-09-30",
+              "landing:orders@2026-10-01",
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The runbook says a missing landing file is fixed by upstream redelivery for the affected tables. It says redelivery is wrong for persistent schema or format changes.",
+            "evidence_ids": [
+              "runbook:missing_data#remedy-for-one-off-export-glitches",
+              "runbook:remediation_policy#choosing-quickly",
+              "runbook:schema_changes#why-asking-upstream-to-resend-does-not-fix-this"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "rerun_only: rejected because the file is absent and a rerun alone would fail the same way.",
+          "Column mapping, parser or ignore-columns changes: rejected because there is no schema or format change, only a missing file.",
+          "Requesting redelivery for orders, order_items and payments too: rejected because those files arrived intact.",
+          "revert_model_change: rejected because the failure is at ingest and no dbt model is involved.",
+          "Escalating to upstream_app_team: held back unless redelivery returns no file. The source inspector only checked the contract path, so a misplaced file elsewhere is not ruled out."
+        ]
+      },
+      "proposal": {
+        "ts": 1792094739.776223,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "customers"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The customers landing file for 2026-10-01 was never delivered (one-off gap). Customers delivered normally on 09-30 and the other three tables arrived intact on 10-01, so this is not a schema or format change. The runbook maps a missing landing file to upstream redelivery. Only customers is affected, so only customers is requested.",
+        "evidence_ids": [
+          "run:abaa7ebb",
+          "log:243",
+          "landing:customers@2026-10-01",
+          "landing:customers@2026-09-30",
+          "landing:orders@2026-10-01",
+          "landing:order_items@2026-10-01",
+          "landing:payments@2026-10-01",
+          "runbook:missing_data#remedy-for-one-off-export-glitches",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "upstream re-exported customers (30 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 47.6,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 47.6
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 10,
+    "cited_ids_total": 10,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 13,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 30951,
+        "output_tokens": 1840,
+        "api_equiv_usd": 0.0499
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 20888,
+        "output_tokens": 2227,
+        "api_equiv_usd": 0.0626
+      }
+    },
+    "api_equiv_usd": 0.1125
+  }
+}

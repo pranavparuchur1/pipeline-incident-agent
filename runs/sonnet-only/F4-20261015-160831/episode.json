@@ -1,0 +1,170 @@
+{
+  "incident": "F4",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\F4-20261015-160831",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "a378dc9d-38e5-42e5-8ab8-194dbd422a16",
+    "failed_step": "transform",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 failed in dbt because dim_customers was edited to select c.country_iso. That column doesn't exist in stg_customers or raw.customers, where it is still `country`. Upstream data is fine, so I proposed reverting dim_customers to the deployed version.",
+        "root_cause": {
+          "family": "other",
+          "cause": "bad_model_deploy",
+          "table": null,
+          "column": "country_iso",
+          "model": "dim_customers",
+          "explanation": "dim_customers differs from the deployed version by one line: c.country became c.country_iso. stg_customers and raw.customers expose only `country`, so dbt raised a Binder Error. The landing file matches the contract, and raw checks pass."
+        },
+        "evidence": [
+          {
+            "claim": "dbt failed with a Binder Error: dim_customers references c.country_iso, which doesn't exist",
+            "evidence_ids": [
+              "log:248",
+              "log:251",
+              "run:a378dc9d"
+            ]
+          },
+          {
+            "claim": "dim_customers is the only changed model, and the only change is country -> country_iso",
+            "evidence_ids": [
+              "model:changes",
+              "worker:1",
+              "model:dim_customers"
+            ]
+          },
+          {
+            "claim": "stg_customers and raw.customers still use `country`",
+            "evidence_ids": [
+              "model:stg_customers",
+              "schema:raw.customers",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The landing customers file matches the contract and ingest config is default, so there is no upstream schema change",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "config:ingest",
+              "worker:2"
+            ]
+          },
+          {
+            "claim": "Raw partitions are present, row counts are normal, and orders reconcile to fct_orders",
+            "evidence_ids": [
+              "check:partition_present:raw.customers@live",
+              "check:row_count_trend:raw.orders@live",
+              "check:reconciliation:raw.orders->marts.fct_orders@live"
+            ]
+          }
+        ],
+        "confidence": 0.93,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream renamed country to country_iso: ruled out, the landing header still has `country`.",
+          "Add country_iso upstream or map it at ingest: unnecessary, since nothing delivers that column.",
+          "Request upstream redelivery: not a delivery problem.",
+          "Rerun only: the build would fail the same way.",
+          "Escalate to analytics_engineering: not needed, because a safe revert exists. The author may want to re-propose the country_iso change properly."
+        ]
+      },
+      "proposal": {
+        "ts": 1792094973.012255,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "dim_customers"
+            }
+          }
+        ],
+        "rationale": "dim_customers was changed to select c.country_iso, which doesn't exist in stg_customers or raw.customers (contract column is country). Landing data is fine. Reverting the model restores the deployed version.",
+        "evidence_ids": [
+          "log:248",
+          "model:changes",
+          "worker:1",
+          "worker:2"
+        ]
+      },
+      "applied": [
+        "reverted models/marts/dim_customers.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 38.0,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": false,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": false
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.93,
+      "seconds": 38.0
+    },
+    "final": {
+      "root_cause": {
+        "family": false,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": false
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 15,
+    "cited_ids_total": 15,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 15,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 36942,
+        "output_tokens": 1701,
+        "api_equiv_usd": 0.0543
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 25016,
+        "output_tokens": 1468,
+        "api_equiv_usd": 0.0471
+      }
+    },
+    "api_equiv_usd": 0.1014
+  }
+}

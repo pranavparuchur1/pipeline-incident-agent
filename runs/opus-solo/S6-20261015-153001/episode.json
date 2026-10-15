@@ -1,0 +1,164 @@
+{
+  "incident": "S6",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\S6-20261015-153001",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "743ad061-81e9-4255-8f58-6679aa4ae110",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (743ad061) failed at ingest because upstream renamed the payments column `amount` to `amount_usd`. Nothing else in the file changed, and the values look the same as before (plain USD decimals on the usual scale). I've proposed mapping `amount_usd` to `amount` at ingest; it hasn't been applied yet, and the harness will check it by rerunning the partition.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_renamed",
+          "table": "payments",
+          "column": "amount",
+          "model": null,
+          "explanation": "The 2026-10-01 payments.csv header has amount_usd where the contract expects amount. The other columns and the 417 data rows are fine, with no parse problems. The values are plain decimals with the same scale and minimum (4.99) as earlier partitions, and the contract already says currency is USD, so the meaning is unchanged. Ingest matches columns by name, so the rename failed the load."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed with a payments schema mismatch: amount missing, amount_usd unexpected",
+            "evidence_ids": [
+              "run:743ad061",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The landing file is complete and well-formed; the only difference from the contract is the renamed amount column",
+            "evidence_ids": [
+              "landing:payments@2026-10-01"
+            ]
+          },
+          {
+            "claim": "Values are on the same scale as earlier partitions, and the contract already requires USD, so the meaning is unchanged",
+            "evidence_ids": [
+              "sql:d13e26c9",
+              "landing:payments@2026-10-01",
+              "runbook:architecture#data-contracts-raw"
+            ]
+          },
+          {
+            "claim": "The runbook says to handle a same-meaning rename with apply_column_mapping; no mapping is configured yet",
+            "evidence_ids": [
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "config:ingest"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Escalate to upstream_app_team as a change in meaning (currency or units): rejected because values match the prior scale and the contract is already USD-only",
+          "Request redelivery: rejected because the rename looks deliberate and the file is otherwise complete",
+          "Ignore amount_usd as an extra column: not allowed, because amount is a required contract column",
+          "Rerun only: would fail again with the same schema mismatch"
+        ]
+      },
+      "proposal": {
+        "ts": 1792092631.3674643,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "apply_column_mapping",
+            "params": {
+              "table": "payments",
+              "source_column": "amount_usd",
+              "target_column": "amount"
+            }
+          }
+        ],
+        "rationale": "Upstream renamed payments.amount to amount_usd in the 2026-10-01 export. Everything else in the header matches the contract, the values are plain decimals on the same scale as earlier partitions, and the contract already requires USD. The meaning is unchanged, so the runbook says to map the column at ingest rather than escalate.",
+        "evidence_ids": [
+          "run:743ad061",
+          "log:243",
+          "landing:payments@2026-10-01",
+          "sql:d13e26c9",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:architecture#data-contracts-raw",
+          "config:ingest"
+        ]
+      },
+      "applied": [
+        "ingest now reads raw.payments.amount from upstream column 'amount_usd'"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 32.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 32.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 8,
+    "cited_ids_total": 8,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 8,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 43797,
+        "output_tokens": 2153,
+        "api_equiv_usd": 0.1209
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1209
+  }
+}

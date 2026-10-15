@@ -265,317 +265,259 @@
     "n": 19,
     "missing": [],
     "root_cause_accuracy": {
-      "k": 0,
+      "k": 16,
       "n": 19,
-      "rate": 0.0,
+      "rate": 0.842,
       "ci95": [
-        0.0,
-        0.17
+        0.62,
+        0.94
       ]
     },
     "root_cause_family_accuracy": {
-      "k": 0,
+      "k": 16,
       "n": 19,
-      "rate": 0.0,
+      "rate": 0.842,
       "ci95": [
-        0.0,
-        0.17
+        0.62,
+        0.94
       ]
     },
     "decision_accuracy": {
-      "k": 0,
+      "k": 19,
       "n": 19,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.17
+        0.83,
+        1.0
       ]
     },
     "recovery_first_attempt": {
-      "k": 0,
+      "k": 17,
       "n": 17,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.18
+        0.82,
+        1.0
       ]
     },
     "recovery_with_retry": {
-      "k": 0,
+      "k": 17,
       "n": 17,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.18
+        0.82,
+        1.0
       ]
     },
     "correct_escalation": {
-      "k": 0,
+      "k": 2,
       "n": 2,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.66
+        0.34,
+        1.0
       ]
     },
     "false_remediation": {
       "count": 0,
-      "applied_fixes": 0,
+      "applied_fixes": 17,
       "k": 0,
-      "n": 0,
-      "rate": null,
+      "n": 17,
+      "rate": 0.0,
       "ci95": [
         0.0,
-        0.0
+        0.18
       ]
     },
     "time_to_diagnosis_s": {
-      "median": 4.5,
-      "p90": 5.4
+      "median": 46.9,
+      "p90": 69.7
     },
     "cost_per_incident_usd": {
-      "mean": 0,
-      "median": 0,
-      "worker_share": 0.0
+      "mean": 0.152,
+      "median": 0.122,
+      "worker_share": 0.52
     },
-    "delegations_per_incident": 0,
-    "tool_calls_per_incident": 0,
+    "delegations_per_incident": 2.16,
+    "tool_calls_per_incident": 15,
     "citations_valid": {
-      "valid": 0,
-      "total": 0
+      "valid": 232,
+      "total": 232
     },
-    "confidence_when_correct": null,
-    "confidence_when_wrong": null,
-    "errors": {
-      "D2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "D3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "D4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F5": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "M1": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "M3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "M4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "R2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "R3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S5": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S6": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S7": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S8": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ]
-    },
+    "confidence_when_correct": 0.83,
+    "confidence_when_wrong": 0.9,
+    "errors": {},
     "per_incident": {
       "D2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.6,
-        "usd": 0
+        "seconds": 56.0,
+        "usd": 0.1985
       },
       "D3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.4,
-        "usd": 0
+        "seconds": 60.9,
+        "usd": 0.2081
       },
       "D4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.1,
-        "usd": 0
+        "seconds": 69.7,
+        "usd": 0.2165
       },
       "F2": {
         "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.3,
-        "usd": 0
+        "seconds": 70.1,
+        "usd": 0.2088
       },
       "F3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.6,
-        "usd": 0
+        "seconds": 46.9,
+        "usd": 0.1136
       },
       "F4": {
         "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.0,
-        "usd": 0
+        "seconds": 38.0,
+        "usd": 0.1014
       },
       "F5": {
         "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.3,
-        "usd": 0
+        "seconds": 44.5,
+        "usd": 0.1964
       },
       "M1": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.0,
-        "usd": 0
+        "seconds": 47.6,
+        "usd": 0.1291
       },
       "M3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.8,
-        "usd": 0
+        "seconds": 44.7,
+        "usd": 0.1216
       },
       "M4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.0,
-        "usd": 0
+        "seconds": 47.6,
+        "usd": 0.1125
       },
       "R2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.4,
-        "usd": 0
+        "seconds": 86.5,
+        "usd": 0.2526
       },
       "R3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.5,
-        "usd": 0
+        "seconds": 66.3,
+        "usd": 0.264
       },
       "S2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 6.4,
-        "usd": 0
+        "seconds": 54.5,
+        "usd": 0.1237
       },
       "S3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.4,
-        "usd": 0
+        "seconds": 45.2,
+        "usd": 0.1061
       },
       "S4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.8,
-        "usd": 0
+        "seconds": 44.4,
+        "usd": 0.1014
       },
       "S5": {
-        "root_cause_ok": false,
-        "decision": null,
+        "root_cause_ok": true,
+        "decision": "escalate",
         "recovered": false,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.2,
-        "usd": 0
+        "seconds": 43.5,
+        "usd": 0.1093
       },
       "S6": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.5,
-        "usd": 0
+        "seconds": 46.7,
+        "usd": 0.119
       },
       "S7": {
-        "root_cause_ok": false,
-        "decision": null,
+        "root_cause_ok": true,
+        "decision": "escalate",
         "recovered": false,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.1,
-        "usd": 0
+        "seconds": 39.5,
+        "usd": 0.1058
       },
       "S8": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.3,
-        "usd": 0
+        "seconds": 36.2,
+        "usd": 0.0966
       }
     }
   },
@@ -584,245 +526,196 @@
     "n": 19,
     "missing": [],
     "root_cause_accuracy": {
-      "k": 3,
+      "k": 18,
       "n": 19,
-      "rate": 0.158,
+      "rate": 0.947,
       "ci95": [
-        0.06,
-        0.38
+        0.75,
+        0.99
       ]
     },
     "root_cause_family_accuracy": {
-      "k": 3,
+      "k": 19,
       "n": 19,
-      "rate": 0.158,
+      "rate": 1.0,
       "ci95": [
-        0.06,
-        0.38
+        0.83,
+        1.0
       ]
     },
     "decision_accuracy": {
-      "k": 3,
+      "k": 19,
       "n": 19,
-      "rate": 0.158,
+      "rate": 1.0,
       "ci95": [
-        0.06,
-        0.38
+        0.83,
+        1.0
       ]
     },
     "recovery_first_attempt": {
-      "k": 3,
+      "k": 17,
       "n": 17,
-      "rate": 0.176,
+      "rate": 1.0,
       "ci95": [
-        0.06,
-        0.41
+        0.82,
+        1.0
       ]
     },
     "recovery_with_retry": {
-      "k": 3,
+      "k": 17,
       "n": 17,
-      "rate": 0.176,
+      "rate": 1.0,
       "ci95": [
-        0.06,
-        0.41
+        0.82,
+        1.0
       ]
     },
     "correct_escalation": {
-      "k": 0,
+      "k": 2,
       "n": 2,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.66
+        0.34,
+        1.0
       ]
     },
     "false_remediation": {
       "count": 0,
-      "applied_fixes": 3,
+      "applied_fixes": 17,
       "k": 0,
-      "n": 3,
+      "n": 17,
       "rate": 0.0,
       "ci95": [
         0.0,
-        0.56
+        0.18
       ]
     },
     "time_to_diagnosis_s": {
-      "median": 2.8,
-      "p90": 31.2
+      "median": 42.8,
+      "p90": 49.3
     },
     "cost_per_incident_usd": {
-      "mean": 0.022,
-      "median": 0,
+      "mean": 0.18,
+      "median": 0.15,
       "worker_share": 0.0
     },
     "delegations_per_incident": 0,
-    "tool_calls_per_incident": 1.5,
+    "tool_calls_per_incident": 9.2,
     "citations_valid": {
-      "valid": 25,
-      "total": 25
+      "valid": 218,
+      "total": 218
     },
-    "confidence_when_correct": 0.91,
-    "confidence_when_wrong": null,
-    "errors": {
-      "D2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "D3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "D4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F5": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "M1": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "M3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "M4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "R2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "R3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S5": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S6": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S7": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S8": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ]
-    },
+    "confidence_when_correct": 0.9,
+    "confidence_when_wrong": 0.93,
+    "errors": {},
     "per_incident": {
       "D2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.5,
-        "usd": 0
+        "seconds": 48.2,
+        "usd": 0.2856
       },
       "D3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.3,
-        "usd": 0
+        "seconds": 42.8,
+        "usd": 0.2338
       },
       "D4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.8,
-        "usd": 0
+        "seconds": 53.0,
+        "usd": 0.3131
       },
       "F2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.2,
-        "usd": 0
+        "seconds": 49.3,
+        "usd": 0.2592
       },
       "F3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.4,
-        "usd": 0
+        "seconds": 34.6,
+        "usd": 0.1352
       },
       "F4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.1,
-        "usd": 0
+        "seconds": 32.8,
+        "usd": 0.0996
       },
       "F5": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.0,
-        "usd": 0
+        "seconds": 46.8,
+        "usd": 0.245
       },
       "M1": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.2,
-        "usd": 0
+        "seconds": 39.8,
+        "usd": 0.1328
       },
       "M3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.4,
-        "usd": 0
+        "seconds": 35.5,
+        "usd": 0.1435
       },
       "M4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.3,
-        "usd": 0
+        "seconds": 43.2,
+        "usd": 0.1717
       },
       "R2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.0,
-        "usd": 0
+        "seconds": 39.6,
+        "usd": 0.2307
       },
       "R3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.5,
-        "usd": 0
+        "seconds": 53.6,
+        "usd": 0.2579
       },
       "S2": {
         "root_cause_ok": true,
@@ -830,8 +723,8 @@
         "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 31.2,
-        "usd": 0.1591
+        "seconds": 48.7,
+        "usd": 0.1811
       },
       "S3": {
         "root_cause_ok": true,
@@ -839,8 +732,8 @@
         "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 31.8,
-        "usd": 0.1291
+        "seconds": 39.5,
+        "usd": 0.1143
       },
       "S4": {
         "root_cause_ok": true,
@@ -848,44 +741,44 @@
         "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 32.4,
-        "usd": 0.1308
+        "seconds": 44.4,
+        "usd": 0.1498
       },
       "S5": {
-        "root_cause_ok": false,
-        "decision": null,
+        "root_cause_ok": true,
+        "decision": "escalate",
         "recovered": false,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.3,
-        "usd": 0
+        "seconds": 48.3,
+        "usd": 0.1129
       },
       "S6": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.8,
-        "usd": 0
+        "seconds": 32.8,
+        "usd": 0.1209
       },
       "S7": {
-        "root_cause_ok": false,
-        "decision": null,
+        "root_cause_ok": true,
+        "decision": "escalate",
         "recovered": false,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.7,
-        "usd": 0
+        "seconds": 27.8,
+        "usd": 0.1218
       },
       "S8": {
         "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.7,
-        "usd": 0
+        "seconds": 25.3,
+        "usd": 0.1153
       }
     }
   },
@@ -894,317 +787,259 @@
     "n": 19,
     "missing": [],
     "root_cause_accuracy": {
-      "k": 0,
+      "k": 19,
       "n": 19,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.17
+        0.83,
+        1.0
       ]
     },
     "root_cause_family_accuracy": {
-      "k": 0,
+      "k": 19,
       "n": 19,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.17
+        0.83,
+        1.0
       ]
     },
     "decision_accuracy": {
-      "k": 0,
+      "k": 19,
       "n": 19,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.17
+        0.83,
+        1.0
       ]
     },
     "recovery_first_attempt": {
-      "k": 0,
+      "k": 17,
       "n": 17,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.18
+        0.82,
+        1.0
       ]
     },
     "recovery_with_retry": {
-      "k": 0,
+      "k": 17,
       "n": 17,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.18
+        0.82,
+        1.0
       ]
     },
     "correct_escalation": {
-      "k": 0,
+      "k": 2,
       "n": 2,
-      "rate": 0.0,
+      "rate": 1.0,
       "ci95": [
-        0.0,
-        0.66
+        0.34,
+        1.0
       ]
     },
     "false_remediation": {
       "count": 0,
-      "applied_fixes": 0,
+      "applied_fixes": 17,
       "k": 0,
-      "n": 0,
-      "rate": null,
+      "n": 17,
+      "rate": 0.0,
       "ci95": [
         0.0,
-        0.0
+        0.18
       ]
     },
     "time_to_diagnosis_s": {
-      "median": 4.9,
-      "p90": 5.4
+      "median": 59.0,
+      "p90": 73.5
     },
     "cost_per_incident_usd": {
-      "mean": 0,
-      "median": 0,
-      "worker_share": 0.0
+      "mean": 0.252,
+      "median": 0.248,
+      "worker_share": 0.34
     },
-    "delegations_per_incident": 0,
-    "tool_calls_per_incident": 0,
+    "delegations_per_incident": 2.26,
+    "tool_calls_per_incident": 16.1,
     "citations_valid": {
-      "valid": 0,
-      "total": 0
+      "valid": 311,
+      "total": 311
     },
-    "confidence_when_correct": null,
+    "confidence_when_correct": 0.88,
     "confidence_when_wrong": null,
-    "errors": {
-      "D2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "D3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "D4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "F5": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "M1": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "M3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "M4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "R2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "R3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S2": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S3": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S4": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S5": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S6": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S7": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ],
-      "S8": [
-        "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
-      ]
-    },
+    "errors": {},
     "per_incident": {
       "D2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.9,
-        "usd": 0
+        "seconds": 70.6,
+        "usd": 0.319
       },
       "D3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.4,
-        "usd": 0
+        "seconds": 55.7,
+        "usd": 0.3079
       },
       "D4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.7,
-        "usd": 0
+        "seconds": 56.4,
+        "usd": 0.3025
       },
       "F2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.8,
-        "usd": 0
+        "seconds": 54.2,
+        "usd": 0.3362
       },
       "F3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.9,
-        "usd": 0
+        "seconds": 47.4,
+        "usd": 0.1968
       },
       "F4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.3,
-        "usd": 0
+        "seconds": 63.1,
+        "usd": 0.2138
       },
       "F5": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.3,
-        "usd": 0
+        "seconds": 86.8,
+        "usd": 0.3279
       },
       "M1": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.6,
-        "usd": 0
+        "seconds": 47.2,
+        "usd": 0.1713
       },
       "M3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.3,
-        "usd": 0
+        "seconds": 43.8,
+        "usd": 0.172
       },
       "M4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.9,
-        "usd": 0
+        "seconds": 71.4,
+        "usd": 0.258
       },
       "R2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.2,
-        "usd": 0
+        "seconds": 59.5,
+        "usd": 0.3494
       },
       "R3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 2.2,
-        "usd": 0
+        "seconds": 73.5,
+        "usd": 0.3486
       },
       "S2": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.4,
-        "usd": 0
+        "seconds": 59.0,
+        "usd": 0.2478
       },
       "S3": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 3.0,
-        "usd": 0
+        "seconds": 62.5,
+        "usd": 0.2086
       },
       "S4": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.1,
-        "usd": 0
+        "seconds": 48.6,
+        "usd": 0.1926
       },
       "S5": {
-        "root_cause_ok": false,
-        "decision": null,
+        "root_cause_ok": true,
+        "decision": "escalate",
         "recovered": false,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 4.7,
-        "usd": 0
+        "seconds": 46.9,
+        "usd": 0.1745
       },
       "S6": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 6.4,
-        "usd": 0
+        "seconds": 81.9,
+        "usd": 0.288
       },
       "S7": {
-        "root_cause_ok": false,
-        "decision": null,
+        "root_cause_ok": true,
+        "decision": "escalate",
         "recovered": false,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.0,
-        "usd": 0
+        "seconds": 59.4,
+        "usd": 0.1869
       },
       "S8": {
-        "root_cause_ok": false,
-        "decision": null,
-        "recovered": false,
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
         "attempts": 1,
         "false_remediations": 0,
-        "seconds": 5.4,
-        "usd": 0
+        "seconds": 46.4,
+        "usd": 0.1771
       }
     }
   }

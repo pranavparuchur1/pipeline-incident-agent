@@ -1,0 +1,62 @@
+opus+sonnet: running 0 incidents: []
+opus+sonnet: running 0 incidents: []
+opus-solo: running 19 incidents: ['S2', 'S3', 'S4', 'S5', 'M1', 'M3', 'D2', 'D3', 'F2', 'F3', 'R2', 'S6', 'S7', 'S8', 'M4', 'D4', 'F4', 'F5', 'R3']
+S2   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.18 t=48.7s
+S3   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.11 t=39.5s
+S4   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.15 t=44.4s
+S5   opus-solo          rc=OK  decision=escalate recovered=False attempts=1 false_rem=0 $0.11 t=48.3s
+M1   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.13 t=39.8s
+M3   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.14 t=35.5s
+D2   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.29 t=48.2s
+D3   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.23 t=42.8s
+F2   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.26 t=49.3s
+F3   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.14 t=34.6s
+R2   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.23 t=39.6s
+S6   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.12 t=32.8s
+S7   opus-solo          rc=OK  decision=escalate recovered=False attempts=1 false_rem=0 $0.12 t=27.8s
+S8   opus-solo          rc=BAD decision=fix recovered=True attempts=1 false_rem=0 $0.12 t=25.3s
+M4   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.17 t=43.2s
+D4   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.31 t=53.0s
+F4   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.10 t=32.8s
+F5   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.24 t=46.8s
+R3   opus-solo          rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.26 t=53.6s
+sonnet-only: running 19 incidents: ['S2', 'S3', 'S4', 'S5', 'M1', 'M3', 'D2', 'D3', 'F2', 'F3', 'R2', 'S6', 'S7', 'S8', 'M4', 'D4', 'F4', 'F5', 'R3']
+S2   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.12 t=54.5s
+S3   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.11 t=45.2s
+S4   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.10 t=44.4s
+S5   sonnet-only        rc=OK  decision=escalate recovered=False attempts=1 false_rem=0 $0.11 t=43.5s
+M1   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.13 t=47.6s
+M3   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.12 t=44.7s
+D2   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.20 t=56.0s
+D3   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.21 t=60.9s
+F2   sonnet-only        rc=BAD decision=fix recovered=True attempts=1 false_rem=0 $0.21 t=70.1s
+F3   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.11 t=46.9s
+R2   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.25 t=86.5s
+S6   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.12 t=46.7s
+S7   sonnet-only        rc=OK  decision=escalate recovered=False attempts=1 false_rem=0 $0.11 t=39.5s
+S8   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.10 t=36.2s
+M4   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.11 t=47.6s
+D4   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.22 t=69.7s
+F4   sonnet-only        rc=BAD decision=fix recovered=True attempts=1 false_rem=0 $0.10 t=38.0s
+F5   sonnet-only        rc=BAD decision=fix recovered=True attempts=1 false_rem=0 $0.20 t=44.5s
+R3   sonnet-only        rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.26 t=66.3s
+opus+sonnet-noimg: running 19 incidents: ['S2', 'S3', 'S4', 'S5', 'M1', 'M3', 'D2', 'D3', 'F2', 'F3', 'R2', 'S6', 'S7', 'S8', 'M4', 'D4', 'F4', 'F5', 'R3']
+S2   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.25 t=59.0s
+S3   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.21 t=62.5s
+S4   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.19 t=48.6s
+S5   opus+sonnet-noimg  rc=OK  decision=escalate recovered=False attempts=1 false_rem=0 $0.17 t=46.9s
+M1   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.17 t=47.2s
+M3   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.17 t=43.8s
+D2   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.32 t=70.6s
+D3   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.31 t=55.7s
+F2   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.34 t=54.2s
+F3   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.20 t=47.4s
+R2   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.35 t=59.5s
+S6   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.29 t=81.9s
+S7   opus+sonnet-noimg  rc=OK  decision=escalate recovered=False attempts=1 false_rem=0 $0.19 t=59.4s
+S8   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.18 t=46.4s
+M4   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.26 t=71.4s
+D4   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.30 t=56.4s
+F4   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.21 t=63.1s
+F5   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.33 t=86.8s
+R3   opus+sonnet-noimg  rc=OK  decision=fix recovered=True attempts=1 false_rem=0 $0.35 t=73.5s

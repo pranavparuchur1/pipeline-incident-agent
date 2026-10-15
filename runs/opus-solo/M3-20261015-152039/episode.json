@@ -1,0 +1,172 @@
+{
+  "incident": "M3",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\M3-20261015-152039",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "86ef5236-4040-4e19-b3ec-f43d503cdde7",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run 86ef5236 for 2026-10-01 failed at the ingest step because upstream never delivered the order_items file for that day (landing/order_items/dt=2026-10-01/order_items.csv). The orders and payments files for that day are present and valid. This looks like a one-off export glitch, so I've proposed asking upstream to resend orders, order_items and payments for 2026-10-01, then rerunning the partition.",
+        "root_cause": {
+          "family": "missing_partition",
+          "cause": "file_missing",
+          "table": "order_items",
+          "column": null,
+          "model": null,
+          "explanation": "The upstream export did not deliver order_items.csv for dt=2026-10-01, so ingest raised IngestError. The orders file (440 rows) and payments file (417 rows) for that day are present, match the contract and have no parse errors. order_items loaded normally on every earlier day, which points to a one-off delivery failure rather than a deliberate upstream change."
+        },
+        "evidence": [
+          {
+            "claim": "Run 86ef5236 failed at ingest because the order_items landing file for 2026-10-01 is missing",
+            "evidence_ids": [
+              "run:86ef5236",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The order_items file does not exist for 2026-10-01",
+            "evidence_ids": [
+              "landing:order_items@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The orders and payments files for 2026-10-01 are present, match the contract and have normal row counts",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:payments@2026-10-01",
+              "schema:raw.orders"
+            ]
+          },
+          {
+            "claim": "order_items loaded normally on earlier days, so this is a one-off gap",
+            "evidence_ids": [
+              "log:237"
+            ]
+          },
+          {
+            "claim": "The runbook says a missing landing file is fixed by redelivering orders, order_items and payments together",
+            "evidence_ids": [
+              "runbook:remediation_policy#choosing-quickly",
+              "runbook:missing_data#remedy-for-one-off-export-glitches"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "rerun_only: rejected because the file is still missing, so a plain rerun would fail the same way",
+          "Redelivering only order_items: rejected because the runbook says to redeliver the related tables together so they stay consistent",
+          "escalate_to_owner(upstream_app_team): kept as the fallback if the redelivery also comes back without the file"
+        ]
+      },
+      "proposal": {
+        "ts": 1792092077.875866,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "Ingest failed because the upstream export never delivered landing/order_items/dt=2026-10-01/order_items.csv. The orders and payments files for that day are present and look normal (same headers as the contract, normal row counts, no parse errors). order_items arrived every earlier day. This is a one-off delivery glitch, so per the runbook we ask for redelivery of the related tables together (orders, order_items, payments) to keep them consistent with each other, then rerun the partition.",
+        "evidence_ids": [
+          "run:86ef5236",
+          "log:243",
+          "landing:order_items@2026-10-01",
+          "landing:orders@2026-10-01",
+          "landing:payments@2026-10-01",
+          "log:237",
+          "schema:raw.orders",
+          "runbook:remediation_policy#choosing-quickly",
+          "runbook:missing_data#remedy-for-one-off-export-glitches"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 35.5,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 35.5
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 9,
+    "cited_ids_total": 9,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 10,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 49872,
+        "output_tokens": 2227,
+        "api_equiv_usd": 0.1435
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1435
+  }
+}

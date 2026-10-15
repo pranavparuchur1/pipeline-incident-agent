@@ -1,0 +1,179 @@
+{
+  "incident": "S4",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\S4-20261015-151607",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "96b46359-2645-4496-855d-aa56cb6f230c",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Nightly run 96b46359 (2026-10-01) failed at ingest because upstream added a new column, `coupon_code`, to orders.csv. The column isn't in the raw.orders contract. All 7 contract columns are present, the file has a normal 440 rows and the other landing files are clean. Proposed fix: set ingest to ignore the extra `coupon_code` column for orders, then rerun.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_added",
+          "table": "orders",
+          "column": "coupon_code",
+          "model": null,
+          "explanation": "orders.csv for 2026-10-01 has an extra column, coupon_code, that isn't in the raw.orders contract. No contract columns are missing. Ingest's header check rejects any mismatch, so the step failed. The data is otherwise fine: 440 rows, normal values, no parse problems."
+        },
+        "evidence": [
+          {
+            "claim": "The ingest step failed with a schema mismatch on raw.orders: missing [], unexpected ['coupon_code']",
+            "evidence_ids": [
+              "log:243",
+              "run:96b46359"
+            ]
+          },
+          {
+            "claim": "The landing orders file has all contract columns plus coupon_code, 440 rows and no parse problems",
+            "evidence_ids": [
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "440 rows is in the normal range for orders partitions (412-534), so this is not a partial export",
+            "evidence_ids": [
+              "schema:raw.orders"
+            ]
+          },
+          {
+            "claim": "The other tables' landing files for this day match their contracts",
+            "evidence_ids": [
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01",
+              "landing:customers@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The runbook maps an unexpected-only column to 'new column added upstream', fixed with ignore_extra_columns",
+            "evidence_ids": [
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          },
+          {
+            "claim": "Ingest config is at defaults, so no earlier change explains the failure",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          }
+        ],
+        "confidence": 0.93,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Column rename: ruled out because no contract column is missing",
+          "Partial or corrupt export needing redelivery: ruled out because the row count is normal, the file ends with a newline and there are no parse problems",
+          "Bad dbt model deploy: ruled out because the failure happened at ingest, before transform",
+          "Escalate to upstream to add coupon_code to the contract: not needed for pipeline health; adding it can be a separate request"
+        ]
+      },
+      "proposal": {
+        "ts": 1792091820.8441503,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "ignore_extra_columns",
+            "params": {
+              "table": "orders",
+              "columns": [
+                "coupon_code"
+              ]
+            }
+          }
+        ],
+        "rationale": "Upstream added a new non-contract column 'coupon_code' to orders.csv (unexpected only, no missing columns). All 7 contract columns are present with normal values and the row count (440) is in the usual range; other landing files are clean. Per runbook, new non-contract columns are adapted in ingest by ignoring them.",
+        "evidence_ids": [
+          "log:243",
+          "run:96b46359",
+          "landing:orders@2026-10-01",
+          "schema:raw.orders",
+          "runbook:schema_changes#symptom-to-cause",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:remediation_policy#choosing-quickly",
+          "config:ingest"
+        ]
+      },
+      "applied": [
+        "ingest now ignores upstream columns ['coupon_code'] on raw.orders"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 44.4,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.93,
+      "seconds": 44.4
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 11,
+    "cited_ids_total": 11,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 11,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 62613,
+        "output_tokens": 2215,
+        "api_equiv_usd": 0.1498
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1498
+  }
+}

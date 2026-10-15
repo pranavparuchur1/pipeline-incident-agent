@@ -1,0 +1,177 @@
+{
+  "incident": "M1",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\M1-20261015-154733",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "832731b8-6fc4-4df8-890a-89e1b3bc3525",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly ingest for 2026-10-01 failed because landing/orders/dt=2026-10-01/orders.csv was never delivered. The other tables landed with valid headers, and order_items and payments reference orders that don't exist, so upstream activity did occur. I proposed a redelivery of orders, order_items and payments for 2026-10-01, followed by a rerun.",
+        "root_cause": {
+          "family": "missing_partition",
+          "cause": "file_missing",
+          "table": "orders",
+          "column": null,
+          "model": null,
+          "explanation": "The orders landing file for dt=2026-10-01 is absent. The previous day's file was normal (461 rows). customers, order_items and payments landed fine with contract headers. order_items and payments reference order_ids 13402+, which have no orders rows. This points to a one-off export gap rather than a schema or model change. The source inspector only checked the expected path, so a file under another name or dt is not fully ruled out."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed on the missing orders landing file",
+            "evidence_ids": [
+              "run:832731b8",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The orders file is absent for 10-01 but was normal on 09-30",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "Sibling tables landed with valid headers, and their order_ids have no matching orders rows",
+            "evidence_ids": [
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The ingest config is at defaults, so no config change explains the failure",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook maps a missing landing file to redelivery of orders, order_items and payments together, and to escalation if redelivery reproduces the problem",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:missing_data#remedy-for-one-off-export-glitches",
+              "runbook:remediation_policy#choosing-quickly",
+              "runbook:failed_jobs#corrupt-or-truncated-landing-files"
+            ]
+          }
+        ],
+        "confidence": 0.8,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "rerun_only: the file is missing, so a rerun would fail the same way",
+          "escalate_to_upstream_app_team: held back as the next step if redelivery reproduces the gap",
+          "apply_column_mapping, ignore_extra_columns, set_column_parser: no schema drift, and the file is missing entirely",
+          "revert_model_change: the failure is at ingest and no model change is involved",
+          "redelivering only orders: rejected because the runbook says to redeliver the related tables together"
+        ]
+      },
+      "proposal": {
+        "ts": 1792093702.2376738,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The orders landing file for 2026-10-01 is missing. The other tables landed with valid headers, and order_items and payments reference order_ids 13402+ that have no matching orders, so this is a one-off export gap. The runbook maps this to a redelivery of orders, order_items and payments together. No schema or config change is involved.",
+        "evidence_ids": [
+          "run:832731b8",
+          "log:243",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "landing:order_items@2026-10-01",
+          "landing:payments@2026-10-01",
+          "runbook:missing_data#remedy-for-one-off-export-glitches",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 47.6,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.8,
+      "seconds": 47.6
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 13,
+    "cited_ids_total": 13,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 16,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 31761,
+        "output_tokens": 1970,
+        "api_equiv_usd": 0.0531
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 23165,
+        "output_tokens": 2647,
+        "api_equiv_usd": 0.076
+      }
+    },
+    "api_equiv_usd": 0.1291
+  }
+}

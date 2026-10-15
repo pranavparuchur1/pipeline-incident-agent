@@ -1,0 +1,179 @@
+{
+  "incident": "F2",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\F2-20261015-155420",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "5728a8ee-f001-4617-9137-a7bac0909bd3",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "An undeployed edit to stg_orders renamed order_amount to amount_usd. fct_orders and dim_customers still read order_amount, so they failed to build for 2026-10-01. That left 0 rows in fct_orders against 440 raw orders and caused the other check failures. Landing data is fine. I proposed reverting stg_orders.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "bad_model_deploy",
+          "table": null,
+          "column": "order_amount",
+          "model": "stg_orders",
+          "explanation": "stg_orders is the only model that differs from the deployed version. It now exposes order_total as amount_usd instead of order_amount. Unchanged downstream models (fct_orders, dim_customers) still reference o.order_amount, so they error and are skipped. The test errors for order_amount are binder errors, and the dim_customers and fct_orders tests were skipped. Landing data matches the contract, so upstream did not change anything."
+        },
+        "evidence": [
+          {
+            "claim": "The run failed in quality_checks after ingest and transform both reported success. The two previous days passed.",
+            "evidence_ids": [
+              "run:5728a8ee",
+              "run:b62948b3",
+              "run:0122e4b4"
+            ]
+          },
+          {
+            "claim": "The failing tests are binder errors on the missing order_amount column. The dim_customers and fct_orders tests were skipped. fct_orders has 0 rows for the partition against 440 raw orders.",
+            "evidence_ids": [
+              "check:not_null_stg_orders_order_amount.247151f42c@5728a8ee",
+              "check:assert_order_totals_match_items@5728a8ee",
+              "check:assert_payments_match_orders@5728a8ee",
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:unique_dim_customers_customer_id.15c9f1e2fd@5728a8ee"
+            ]
+          },
+          {
+            "claim": "stg_orders is the only changed model. It renamed order_amount to amount_usd, and fct_orders and dim_customers still read order_amount.",
+            "evidence_ids": [
+              "model:changes",
+              "model:stg_orders",
+              "model:fct_orders",
+              "model:dim_customers",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "Landing data and ingest config are normal. The orders file has all 7 contract columns, and the raw row counts are in the normal range.",
+            "evidence_ids": [
+              "worker:2",
+              "landing:orders@2026-10-01",
+              "config:ingest",
+              "check:row_count_trend:raw.orders@live"
+            ]
+          },
+          {
+            "claim": "The runbook says to revert the model that changed, not the one that errored.",
+            "evidence_ids": [
+              "worker:3",
+              "runbook:failed_jobs#model-errors-after-a-deploy"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream column rename: ruled out, because the landing file has the contract columns and the ingest config is default.",
+          "Redelivery of the file: ruled out, because the raw partitions are present and the row counts are normal.",
+          "Change the downstream models to use amount_usd: rejected, because it spreads the change and the staging layer should stay stable.",
+          "Escalate to analytics_engineering as an intentional rename: the diff gives no sign the rename was planned. If it was, reverting would undo it, and analytics_engineering should update the downstream models instead.",
+          "rerun_only: ruled out, because the failure is deterministic."
+        ]
+      },
+      "proposal": {
+        "ts": 1792094217.3267705,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "stg_orders"
+            }
+          }
+        ],
+        "rationale": "Landing data is intact and ingest config is default. The only changed model, stg_orders, renamed order_amount to amount_usd. fct_orders and dim_customers still read order_amount, so they failed to build. Reverting stg_orders restores the column and fixes the downstream failures.",
+        "evidence_ids": [
+          "model:changes",
+          "model:stg_orders",
+          "model:fct_orders",
+          "model:dim_customers",
+          "worker:1",
+          "worker:2",
+          "worker:3",
+          "check:not_null_stg_orders_order_amount.247151f42c@5728a8ee",
+          "runbook:failed_jobs#model-errors-after-a-deploy"
+        ]
+      },
+      "applied": [
+        "reverted models/staging/stg_orders.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 70.1,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": false,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": false
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 70.1
+    },
+    "final": {
+      "root_cause": {
+        "family": false,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": false
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 19,
+    "cited_ids_total": 19,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 18,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 71027,
+        "output_tokens": 2201,
+        "api_equiv_usd": 0.1117
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 32414,
+        "output_tokens": 3120,
+        "api_equiv_usd": 0.0971
+      }
+    },
+    "api_equiv_usd": 0.2088
+  }
+}

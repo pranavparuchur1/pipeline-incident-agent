@@ -1,0 +1,177 @@
+{
+  "incident": "F5",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\F5-20261015-160954",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "0d47b0f9-412c-40e0-879c-08f84632b46c",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 failed because the dbt model stg_payments was changed to output `amount_usd` instead of `amount`. fct_orders and two tests still read `amount`, so fct_orders built 0 rows for the day (440 raw orders) and the checks failed. I proposed reverting stg_payments. The landing files are fine.",
+        "root_cause": {
+          "family": "other",
+          "cause": "bad_model_deploy",
+          "table": null,
+          "column": "amount",
+          "model": "stg_payments",
+          "explanation": "The deployed change to stg_payments replaces `amount` with `amount as amount_usd`. The unchanged fct_orders (sum(amount)), assert_payments_match_orders and not_null_stg_payments_amount still reference `amount` and hit Binder Errors. fct_orders has 0 rows for 2026-10-01, so the freshness and reconciliation checks fail, and the not_null and unique tests on fct_orders.order_id were skipped. The raw payments and orders landing files match the contract, so upstream is not the cause."
+        },
+        "evidence": [
+          {
+            "claim": "stg_payments is the only model that differs from the deployed version, and it renames amount to amount_usd.",
+            "evidence_ids": [
+              "model:changes",
+              "model:stg_payments",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "fct_orders still computes sum(amount) from stg_payments, so it breaks on the renamed column.",
+            "evidence_ids": [
+              "model:fct_orders",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The two test errors are Binder Errors for the missing `amount` column, with amount_usd listed as a candidate.",
+            "evidence_ids": [
+              "check:assert_payments_match_orders@0d47b0f9",
+              "check:not_null_stg_payments_amount.4739fb3aea@0d47b0f9"
+            ]
+          },
+          {
+            "claim": "The mart has 0 rows for 2026-10-01 against 440 raw orders, and the latest order date in fct_orders is 2026-09-30. The two fct_orders tests were skipped.",
+            "evidence_ids": [
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:freshness:marts.fct_orders@live",
+              "check:not_null_fct_orders_order_id.4e687af8d0@0d47b0f9",
+              "check:unique_fct_orders_order_id.523ddb6ce5@0d47b0f9"
+            ]
+          },
+          {
+            "claim": "Raw partitions are present with normal row counts. The landing files match the contract, and the ingest config is empty.",
+            "evidence_ids": [
+              "check:partition_present:raw.payments@live",
+              "check:row_count_trend:raw.payments@live",
+              "landing:payments@2026-10-01",
+              "landing:orders@2026-10-01",
+              "config:ingest",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream column rename: ruled out because the landing payments header still has `amount` and the ingest config is empty.",
+          "Missing or partial delivery: ruled out because the raw partitions are present with row counts at 90-95% of the trailing median.",
+          "apply_column_mapping or rerun_only: neither fixes the model's own rename.",
+          "Updating fct_orders and the tests to use amount_usd: a larger change that spreads the rename, where reverting is the smallest fix.",
+          "Not checked: runbooks, the log line showing the fct_orders build failing, and the 23-row gap between payments and orders. Orders can legitimately have no payment."
+        ]
+      },
+      "proposal": {
+        "ts": 1792095041.7240193,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "stg_payments"
+            }
+          }
+        ],
+        "rationale": "stg_payments was changed to output amount_usd instead of amount; unchanged fct_orders and tests still reference amount, so fct_orders failed to build for 2026-10-01. Landing files match the contract, so upstream is fine. Reverting the model restores the column.",
+        "evidence_ids": [
+          "model:changes",
+          "model:stg_payments",
+          "model:fct_orders",
+          "worker:1",
+          "worker:2",
+          "landing:payments@2026-10-01",
+          "check:assert_payments_match_orders@0d47b0f9",
+          "check:not_null_stg_payments_amount.4739fb3aea@0d47b0f9",
+          "check:reconciliation:raw.orders->marts.fct_orders@live"
+        ]
+      },
+      "applied": [
+        "reverted models/staging/stg_payments.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 44.5,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": false,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": false
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 44.5
+    },
+    "final": {
+      "root_cause": {
+        "family": false,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": false
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 17,
+    "cited_ids_total": 17,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 14,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 67155,
+        "output_tokens": 2191,
+        "api_equiv_usd": 0.104
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 28814,
+        "output_tokens": 2045,
+        "api_equiv_usd": 0.0924
+      }
+    },
+    "api_equiv_usd": 0.1964
+  }
+}

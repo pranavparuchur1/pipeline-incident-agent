@@ -1,0 +1,174 @@
+{
+  "incident": "M4",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\M4-20261015-153241",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "a73e9f8c-90a3-4582-9fda-ccba11e3c89b",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Nightly run a73e9f8c for 2026-10-01 failed at ingest because upstream never delivered landing/customers/dt=2026-10-01/customers.csv. The orders, order_items and payments files for that day all arrived, match the contract and have normal volumes, so this looks like a one-off delivery glitch affecting only customers. Proposed fix: request upstream redelivery of customers for 2026-10-01, then rerun the partition.",
+        "root_cause": {
+          "family": "missing_partition",
+          "cause": "file_missing",
+          "table": "customers",
+          "column": null,
+          "model": null,
+          "explanation": "The customers landing file for 2026-10-01 does not exist, so the ingest step raised IngestError. The export did run that day: the other three event files are present, valid and normal-sized. Only the customers file was dropped, which makes this a one-off delivery problem, not a deliberate upstream change or a dbt issue."
+        },
+        "evidence": [
+          {
+            "claim": "The run failed at ingest with 'landing file missing' for customers 2026-10-01",
+            "evidence_ids": [
+              "run:a73e9f8c",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The customers file does not exist at the expected path",
+            "evidence_ids": [
+              "landing:customers@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The orders, order_items and payments files for 2026-10-01 exist, match the contract and have no parse problems",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The orders volume (440) is within the normal range of recent partitions (412-534)",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "schema:raw.orders"
+            ]
+          },
+          {
+            "claim": "Runbook: for a missing file, redeliver only the affected tables (add customers only if it is affected)",
+            "evidence_ids": [
+              "runbook:missing_data#remedy-for-one-off-export-glitches",
+              "runbook:missing_data#step-2-missing-file-vs-empty-file",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Transient failure, fixed by rerun_only: rejected because the file is truly absent, so a rerun would fail again",
+          "Full export failure, needing redelivery of all tables: rejected because orders, order_items and payments are present and normal",
+          "Empty or partial file: rejected because the path does not exist at all",
+          "Persistent upstream change, needing escalation to upstream_app_team: no evidence yet; escalate if the redelivery also comes back without the file"
+        ]
+      },
+      "proposal": {
+        "ts": 1792092803.7610092,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "customers"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "Ingest failed because landing/customers/dt=2026-10-01/customers.csv was never delivered. The orders, order_items and payments files for that day exist, match the contract, have no parse problems and have normal volumes (440 orders vs 412-534 over the prior 10 days). So the export ran, and only the customers file was dropped: a one-off delivery glitch. Per the runbook, redeliver the affected tables only (customers), then rerun the partition.",
+        "evidence_ids": [
+          "run:a73e9f8c",
+          "log:243",
+          "landing:customers@2026-10-01",
+          "landing:orders@2026-10-01",
+          "landing:order_items@2026-10-01",
+          "landing:payments@2026-10-01",
+          "schema:raw.orders",
+          "runbook:missing_data#remedy-for-one-off-export-glitches",
+          "runbook:missing_data#step-2-missing-file-vs-empty-file",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "upstream re-exported customers (30 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 43.2,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 43.2
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 11,
+    "cited_ids_total": 11,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 12,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 80259,
+        "output_tokens": 2541,
+        "api_equiv_usd": 0.1717
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1717
+  }
+}

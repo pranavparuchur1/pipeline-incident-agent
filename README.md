@@ -20,8 +20,18 @@ fails, it rolls back and gives the agent one more try.
 | Time to diagnosis (median) | 56 s |
 | Cost per incident (API-equivalent estimate) | $0.27 (37% spent by workers) |
 
-Ablations (same 19 incidents): see [docs/results/eval/metrics_held-out.md](docs/results/eval/metrics_held-out.md)
-and [docs/results/phase6.md](docs/results/phase6.md).
+Ablations on the same 19 incidents ([details](docs/results/phase6.md)):
+
+| | Opus + Sonnet workers | Sonnet master + workers | Opus alone | No chart images |
+|---|---|---|---|---|
+| Exact root cause | 19/19 | 16/19 | 18/19 | 19/19 |
+| Verified fixes | 17/17 | 17/17 | 17/17 | 17/17 |
+| Cost / incident | $0.27 | $0.15 | $0.18 | $0.25 |
+| Median time | 56 s | 47 s | 43 s | 59 s |
+
+Every configuration fixed every fixable incident; the misses are labelling slips. On a sandbox this small, Opus
+alone was cheaper and faster than Opus + workers with no measurable accuracy loss: the split is built for evidence
+too large for one context, which this catalog doesn't reach.
 
 One run per incident on a 24-incident catalog the author built, so read this as "reliable on these failure
 classes", not "solves data incidents". Details and caveats: [docs/results/phase4_5.md](docs/results/phase4_5.md).

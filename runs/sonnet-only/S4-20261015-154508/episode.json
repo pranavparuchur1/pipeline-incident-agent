@@ -1,0 +1,167 @@
+{
+  "incident": "S4",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\S4-20261015-154508",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "afd3a24b-30be-4ec0-b355-5bd47ef9afb7",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Run afd3a24b failed at ingest because upstream added a new column, coupon_code, to orders.csv for 2026-10-01. All 7 contract columns are present and unchanged, so nothing is renamed or missing. I proposed ignore_extra_columns(orders, [coupon_code]), then a rerun.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_added",
+          "table": "orders",
+          "column": "coupon_code",
+          "model": null,
+          "explanation": "The landing orders.csv for 2026-10-01 has an extra trailing column, coupon_code, that is not in the raw.orders contract. Ingest is strict about the header and rejected the file with 'missing columns [], unexpected columns [coupon_code]'. The 09-30 and 09-29 runs succeeded, and the ingest config is empty, so nothing handles the new column."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed on raw.orders with an unexpected column coupon_code and no missing columns.",
+            "evidence_ids": [
+              "run:afd3a24b",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The landing header has all 7 contract columns in order plus coupon_code. Nothing is renamed or missing. The ingest config has no handling for the column.",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "schema:raw.orders",
+              "config:ingest",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "Per the runbook, an unexpected column with no missing column is a new upstream column. The fix is ignore_extra_columns followed by a rerun.",
+            "evidence_ids": [
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:2"
+            ]
+          },
+          {
+            "claim": "The earlier runs for 09-30 and 09-29 succeeded.",
+            "evidence_ids": [
+              "run:b62948b3",
+              "run:0122e4b4"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "apply_column_mapping: rejected because no contract column is missing, so this isn't a rename.",
+          "request_upstream_redelivery: rejected because the change looks deliberate and persistent, not a one-off bad file.",
+          "revert_model_change: rejected because the failure is at ingest, before any dbt model runs.",
+          "rerun_only: rejected because the header mismatch would fail again.",
+          "escalate: not needed, since the contract columns are unchanged. I could only see 4 of 440 coupon_code values (all empty), so a business need for coupon data is worth raising with upstream as a follow-up."
+        ]
+      },
+      "proposal": {
+        "ts": 1792093554.8947732,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "ignore_extra_columns",
+            "params": {
+              "table": "orders",
+              "columns": [
+                "coupon_code"
+              ]
+            }
+          }
+        ],
+        "rationale": "Upstream added a non-contract column coupon_code to orders.csv; all 7 contract columns are present and unchanged, so meaning is unchanged. Runbook says to ignore the extra column and rerun.",
+        "evidence_ids": [
+          "log:243",
+          "landing:orders@2026-10-01",
+          "schema:raw.orders",
+          "runbook:schema_changes#symptom-to-cause",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "ingest now ignores upstream columns ['coupon_code'] on raw.orders"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 44.4,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 44.4
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 11,
+    "cited_ids_total": 11,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 11,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 30301,
+        "output_tokens": 1709,
+        "api_equiv_usd": 0.0467
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 19503,
+        "output_tokens": 1981,
+        "api_equiv_usd": 0.0547
+      }
+    },
+    "api_equiv_usd": 0.1014
+  }
+}

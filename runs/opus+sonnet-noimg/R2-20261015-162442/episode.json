@@ -1,0 +1,196 @@
+{
+  "incident": "R2",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\R2-20261015-162442",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "1fb07270-895d-453a-b552-49513c2fcafe",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The `nightly` run for 2026-10-01 (run 1fb07270) failed at quality_checks. The row_count_trend checks for orders, order_items and payments each came in at about 50% of their normal volume. The cause is upstream: the day's export left out every web-channel order (0 vs 242 the day before), while app and marketplace orders were normal. Since order_items and payments belong to orders, they lost their web rows too. I've proposed asking upstream to re-export orders, order_items and payments for 2026-10-01, then rerunning.",
+        "root_cause": {
+          "family": "row_count_drop",
+          "cause": "filtered_export",
+          "table": "orders",
+          "column": "channel",
+          "model": null,
+          "explanation": "Upstream's 2026-10-01 export has no web-channel orders. Orders has 235 rows vs 461 the day before (0 web vs 242). The files are well-formed and cover all 24 hours, so this isn't a cut-off file. Order_items and payments dropped by the same ~50% because the items and payments for the web orders are missing too. No dbt model or ingest config changed. Ingest and dbt both succeeded, and only the row-count trend checks caught the gap."
+        },
+        "evidence": [
+          {
+            "claim": "The run failed at quality_checks. row_count_trend failed for raw.orders, raw.order_items and raw.payments at about 50% of the trailing median.",
+            "evidence_ids": [
+              "run:1fb07270",
+              "log:249",
+              "log:250",
+              "log:251",
+              "check:row_count_trend:raw.orders@live",
+              "check:row_count_trend:raw.order_items@live",
+              "check:row_count_trend:raw.payments@live"
+            ]
+          },
+          {
+            "claim": "Ingest and dbt build succeeded, and all dbt tests passed.",
+            "evidence_ids": [
+              "log:244",
+              "log:248"
+            ]
+          },
+          {
+            "claim": "No dbt model or ingest config changed.",
+            "evidence_ids": [
+              "model:changes",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The web channel is entirely missing (0 vs 242), while app and marketplace counts are normal.",
+            "evidence_ids": [
+              "sql:5f91ad68",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The file is not truncated: all 24 hours are present, the file is well-formed, and the drop is spread evenly across the day.",
+            "evidence_ids": [
+              "sql:6512e8f4",
+              "landing:orders@2026-10-01",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The runbook says a missing category means a filtered export, and the remedy is to redeliver all related tables for the day.",
+            "evidence_ids": [
+              "runbook:missing_data#step-3-partial-vs-filtered",
+              "runbook:missing_data#remedy-for-one-off-export-glitches",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Partial or truncated export: ruled out, because all 24 hours are present and the file is well-formed",
+          "A real drop in business: ruled out, because the whole web channel is at zero while the other channels are normal",
+          "A bad model deploy: ruled out, because no models changed",
+          "rerun_only: wouldn't help, because the landing data itself is missing rows",
+          "The web channel being retired on purpose: possible but unlikely for a one-day change with nothing announced. If the redelivery still has no web orders, escalate to upstream_app_team"
+        ]
+      },
+      "proposal": {
+        "ts": 1792095943.139944,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 export is filtered, not truncated. Every web-channel order is missing (0 vs 242 on 09-30), while app and marketplace look normal and all 24 hours are present. Order_items and payments dropped by the same ~50% because they belong to the missing web orders. No model or config changed, and ingest and dbt succeeded. The runbook remedy for a one-off filtered or partial export is to redeliver all affected related tables for the day together, then rerun.",
+        "evidence_ids": [
+          "run:1fb07270",
+          "log:249",
+          "log:250",
+          "log:251",
+          "check:row_count_trend:raw.orders@live",
+          "check:row_count_trend:raw.order_items@live",
+          "check:row_count_trend:raw.payments@live",
+          "sql:5f91ad68",
+          "sql:6512e8f4",
+          "landing:orders@2026-10-01",
+          "worker:1",
+          "worker:2",
+          "runbook:missing_data#step-3-partial-vs-filtered",
+          "runbook:missing_data#remedy-for-one-off-export-glitches",
+          "model:changes",
+          "config:ingest"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 59.5,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 59.5
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 19,
+    "cited_ids_total": 19,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 19,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 74050,
+        "output_tokens": 2552,
+        "api_equiv_usd": 0.2483
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 39517,
+        "output_tokens": 3786,
+        "api_equiv_usd": 0.1011
+      }
+    },
+    "api_equiv_usd": 0.3494
+  }
+}

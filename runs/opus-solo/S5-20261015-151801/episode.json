@@ -1,0 +1,143 @@
+{
+  "incident": "S5",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\S5-20261015-151801",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "967d9298-d8fe-4b5a-9a99-cc3e9a3dccd9",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "nightly run 967d9298 (partition 2026-10-01) failed at ingest because upstream's payments.csv no longer contains the required contract column `method`: the header has the other four columns, with nothing new or renamed. No other column carries the payment method, so there's nothing safe to map or fix automatically. Escalating to upstream_app_team to restore the column or confirm the change, and analytics_engineering should be told that payments marts will have no 2026-10-01 data until it's resolved.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_dropped",
+          "table": "raw.payments",
+          "column": "method",
+          "model": null,
+          "explanation": "The 2026-10-01 payments landing file header is [payment_id, order_id, amount, paid_ts]. The required contract column `method` (VARCHAR) is gone and no unexpected column replaced it, so this is not a rename. The 2026-09-30 file still had `method`. Ingest's contract check correctly rejected the load. Per the runbook, a dropped required column with no equivalent cannot be mapped or backfilled and must go to the upstream team."
+        },
+        "evidence": [
+          {
+            "claim": "Run 967d9298 failed at ingest with schema mismatch on raw.payments: missing ['method'], unexpected []",
+            "evidence_ids": [
+              "run:967d9298",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The 2026-10-01 payments file lacks the method column, has no extra columns, and is otherwise well-formed (417 rows, no parse problems)",
+            "evidence_ids": [
+              "landing:payments@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The previous day's file included method with values like card/paypal, so the column was dropped starting 2026-10-01",
+            "evidence_ids": [
+              "landing:payments@2026-09-30",
+              "run:b62948b3"
+            ]
+          },
+          {
+            "claim": "method is a required contract column of raw.payments",
+            "evidence_ids": [
+              "schema:raw.payments"
+            ]
+          },
+          {
+            "claim": "No ingest config overrides are in place that could explain the mismatch",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "Missing-only mismatch means column dropped upstream; a dropped required column with no equivalent requires escalation to upstream_app_team and must not be backfilled with NULLs or defaults",
+            "evidence_ids": [
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:schema_changes#requires-escalation"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "escalate",
+        "escalation_owner": "upstream_app_team",
+        "alternatives_considered": [
+          "Column rename (apply_column_mapping): rejected because no unexpected or new column exists to map from",
+          "New column added (ignore_extra_columns): rejected because there are no extra columns",
+          "Transient failure (rerun_only): rejected because the file is deterministic and well-formed and would fail the same way",
+          "One-off bad export (request_upstream_redelivery): possible, but the clean, consistent header looks like a deliberate schema change, so upstream needs to confirm rather than simply re-export",
+          "Backfill method with NULL/default: forbidden by runbook and would produce incorrect data"
+        ]
+      },
+      "proposal": null,
+      "applied": [],
+      "apply_error": null,
+      "recovered": false,
+      "verification": null,
+      "seconds": 48.3,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "escalate",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "escalate",
+      "recovered": false,
+      "confidence": 0.9,
+      "seconds": 48.3
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "escalate",
+      "recovered": false
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 9,
+    "cited_ids_total": 9,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 7,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 30674,
+        "output_tokens": 2666,
+        "api_equiv_usd": 0.1129
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1129
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "incident": "S2",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\S2-20261015-154150",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "aef138a5-34fc-47ba-8889-d6881f601f63",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Ingest failed because upstream renamed customers.country to country_code in the 2026-10-01 file. Ingest config has no mapping, so the schema check rejected it. I proposed apply_column_mapping(customers, country_code -> country), which is the runbook fix for a rename with the same meaning.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_renamed",
+          "table": "customers",
+          "column": "country",
+          "model": null,
+          "explanation": "The 2026-10-01 customers.csv header has country_code where the contract expects country. The 2026-09-30 file matched the contract. Ingest config is empty, so there is no mapping. The other four columns are unchanged and in the same order, and the visible values are 2-letter codes as before."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed on a schema mismatch: country is missing and country_code is unexpected.",
+            "evidence_ids": [
+              "run:aef138a5",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The header changed on 10-01 only. 09-30 matched the contract, and no other columns differ. Only 4 of the 30 rows were inspected, and all were US.",
+            "evidence_ids": [
+              "worker:1",
+              "landing:customers@2026-10-01",
+              "landing:customers@2026-09-30"
+            ]
+          },
+          {
+            "claim": "No column mapping exists in the ingest config.",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says to map a same-meaning rename at ingest and to escalate if the meaning changes.",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform"
+            ]
+          }
+        ],
+        "confidence": 0.8,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: the rename looks deliberate and persistent, so a re-export would likely carry the same header.",
+          "ignore_extra_columns: it can't supply the missing contract column, so it wouldn't fix the rename.",
+          "escalate_to_owner (upstream_app_team): only needed if the meaning changed. The visible values look like the same 2-letter codes, but the sample was small.",
+          "rerun_only: nothing has changed, so it would fail the same way."
+        ]
+      },
+      "proposal": {
+        "ts": 1792093370.7872434,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "apply_column_mapping",
+            "params": {
+              "table": "customers",
+              "source_column": "country_code",
+              "target_column": "country"
+            }
+          }
+        ],
+        "rationale": "Upstream renamed customers.country to country_code in the 2026-10-01 file. The column is in the same position, holds the same 2-letter codes, and no other columns differ. The runbook says to map a same-meaning rename at ingest.",
+        "evidence_ids": [
+          "log:243",
+          "run:aef138a5",
+          "worker:1",
+          "worker:2",
+          "config:ingest",
+          "landing:customers@2026-10-01",
+          "landing:customers@2026-09-30",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform"
+        ]
+      },
+      "applied": [
+        "ingest now reads raw.customers.country from upstream column 'country_code'"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 54.5,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.8,
+      "seconds": 54.5
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 8,
+    "cited_ids_total": 8,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 12,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 31517,
+        "output_tokens": 1677,
+        "api_equiv_usd": 0.0626
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 20395,
+        "output_tokens": 2275,
+        "api_equiv_usd": 0.0611
+      }
+    },
+    "api_equiv_usd": 0.1237
+  }
+}

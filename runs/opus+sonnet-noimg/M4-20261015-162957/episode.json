@@ -1,0 +1,180 @@
+{
+  "incident": "M4",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\M4-20261015-162957",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "c3e0c92f-9870-4194-9dfe-f1efc71a687b",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Nightly run c3e0c92f for 2026-10-01 failed at ingest because the upstream customers file for that day never arrived: landing/customers/dt=2026-10-01/customers.csv is missing. Orders, order_items and payments all arrived complete with normal volumes, so only the customers export failed, for this one day. I've proposed asking upstream to re-send customers for 2026-10-01; the pipeline is then rerun.",
+        "root_cause": {
+          "family": "missing_partition",
+          "cause": "file_missing",
+          "table": "customers",
+          "column": null,
+          "model": null,
+          "explanation": "The upstream export did not deliver customers.csv for dt=2026-10-01, so ingest stopped with 'landing file missing'. The other three tables for that day arrived with normal headers, volumes and ids. Customers arrived normally on 2026-09-30, which makes this a one-off delivery gap for one table, not a schema or model change."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed on 2026-10-01 because the customers landing file was missing; the two previous runs succeeded",
+            "evidence_ids": [
+              "run:c3e0c92f",
+              "log:243",
+              "run:b62948b3"
+            ]
+          },
+          {
+            "claim": "customers.csv for 2026-10-01 is absent, but customers arrived normally on 2026-09-30",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "landing:customers@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "Orders, order_items and payments for 2026-10-01 arrived complete with normal volumes; the items-per-order ratio is within its usual range",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01",
+              "worker:1",
+              "worker:3"
+            ]
+          },
+          {
+            "claim": "The runbook says a one-off export glitch is fixed by asking upstream to re-send only the affected tables, then rerunning",
+            "evidence_ids": [
+              "runbook:missing_data#remedy-for-one-off-export-glitches",
+              "runbook:missing_data#step-2-missing-file-vs-empty-file",
+              "worker:2"
+            ]
+          },
+          {
+            "claim": "Ingest config is the default, with no mappings or other settings in play",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Customers file delivered under a different name or path: not fully ruled out, because the inspector can only check the expected path. A re-send fixes this case either way.",
+          "Partial export of the whole day: ruled out. The other tables arrived complete with normal volumes and continuous ids, and the items-per-order ratio of 1.91 is within the usual 1.91\u20132.11 range.",
+          "Just rerunning: rejected, because the file does not exist, so a rerun would fail the same way.",
+          "Schema change or model change: ruled out. The failure is a missing file at ingest, and ingest config is the default."
+        ]
+      },
+      "proposal": {
+        "ts": 1792096261.9890094,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "customers"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "Ingest failed because landing/customers/dt=2026-10-01/customers.csv was never delivered. The other tables (orders, order_items, payments) landed complete with normal volumes and contiguous ids. Customers was delivered normally on 2026-09-30, so this is a one-off export gap for one table. The runbook says to request redelivery for affected tables only (add customers when it is affected) and then rerun. No pipeline or model change is needed.",
+        "evidence_ids": [
+          "run:c3e0c92f",
+          "log:243",
+          "landing:customers@2026-10-01",
+          "landing:customers@2026-09-30",
+          "landing:orders@2026-10-01",
+          "landing:order_items@2026-10-01",
+          "landing:payments@2026-10-01",
+          "runbook:missing_data#remedy-for-one-off-export-glitches",
+          "runbook:missing_data#step-2-missing-file-vs-empty-file",
+          "worker:1",
+          "worker:2",
+          "worker:3"
+        ]
+      },
+      "applied": [
+        "upstream re-exported customers (30 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 71.4,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 71.4
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 15,
+    "cited_ids_total": 15,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 22,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 47838,
+        "output_tokens": 2493,
+        "api_equiv_usd": 0.1413
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 39213,
+        "output_tokens": 4606,
+        "api_equiv_usd": 0.1167
+      }
+    },
+    "api_equiv_usd": 0.258
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "incident": "D2",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\D2-20261015-155028",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "5653b62d-4efa-4afa-9b74-aa7eac51d9cc",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The 2026-10-01 order_items landing file contains 42 exact duplicate rows (882 rows, 840 distinct order_item_ids). The duplicates broke the unique test on stg_order_items and the order-totals check. fct_orders then wasn't built for the day, which caused the freshness and reconciliation failures. I proposed deduplicate_on_ingest on order_items.order_item_id.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "duplicate_rows_in_file",
+          "table": "order_items",
+          "column": "order_item_id",
+          "model": null,
+          "explanation": "The upstream order_items export for 2026-10-01 repeated 42 rows within the same file. They are identical copies, and none of the ids appear in earlier partitions, so this is not a stale resend. Ingest has no dedupe key, so the duplicates reached raw and stg_order_items. The unique and totals tests failed there, and fct_orders was not built for the partition (0 rows vs 440 raw orders). The fct_orders not-null and unique tests were skipped. The link between the staging failure and the empty fct_orders is inferred from the lineage doc, not directly confirmed."
+        },
+        "evidence": [
+          {
+            "claim": "The order_items partition has 882 rows but 840 distinct ids; the 42 duplicates are exact copies.",
+            "evidence_ids": [
+              "worker:1",
+              "sql:5c7b1695",
+              "landing:order_items@2026-10-01"
+            ]
+          },
+          {
+            "claim": "None of the ids appear in earlier partitions, so this is not a stale resend.",
+            "evidence_ids": [
+              "sql:b0aa718e"
+            ]
+          },
+          {
+            "claim": "The schema matches the contract, ingest config is default with no dedupe key, and no dbt models changed.",
+            "evidence_ids": [
+              "config:ingest",
+              "model:changes",
+              "landing:order_items@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The unique test on stg_order_items and the order-totals check each failed with 42 rows. The 42 matches the duplicate count.",
+            "evidence_ids": [
+              "check:unique_stg_order_items_order_item_id.90e333a108@5653b62d",
+              "check:assert_order_totals_match_items@5653b62d"
+            ]
+          },
+          {
+            "claim": "fct_orders has no rows for 2026-10-01, so the freshness and reconciliation checks failed.",
+            "evidence_ids": [
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:freshness:marts.fct_orders@live"
+            ]
+          },
+          {
+            "claim": "The runbook prescribes deduplicate_on_ingest on the primary key for identical within-file duplicates.",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:duplicates#remedy"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Stale rows resent from a previous day: ruled out because there is no id overlap with earlier partitions (sql:b0aa718e).",
+          "request_upstream_redelivery: valid but slower. The duplicates are identical, so deduping on the key is lossless.",
+          "Bad dbt model deploy: ruled out because no models differ from the deployed version (model:changes).",
+          "Schema change: ruled out because the header matches the contract (landing:order_items@2026-10-01).",
+          "rerun_only: would not help, because the duplicates persist in the landing file."
+        ]
+      },
+      "proposal": {
+        "ts": 1792093904.0787659,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "deduplicate_on_ingest",
+            "params": {
+              "table": "order_items",
+              "key": "order_item_id"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 order_items partition has 42 exact within-file duplicate rows (882 rows, 840 distinct ids). None overlap earlier partitions, so this is not a stale resend. Schema matches the contract and no dbt models changed. The runbook recommends deduplicate_on_ingest on the primary key for identical within-file duplicates.",
+        "evidence_ids": [
+          "worker:1",
+          "worker:2",
+          "sql:5c7b1695",
+          "sql:b0aa718e",
+          "config:ingest",
+          "check:unique_stg_order_items_order_item_id.90e333a108@5653b62d",
+          "model:changes",
+          "runbook:duplicates#remedy"
+        ]
+      },
+      "applied": [
+        "ingest now keeps one row per order_item_id when loading raw.order_items"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 56.0,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 56.0
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 13,
+    "cited_ids_total": 13,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 17,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 68981,
+        "output_tokens": 2160,
+        "api_equiv_usd": 0.1077
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 44798,
+        "output_tokens": 3133,
+        "api_equiv_usd": 0.0908
+      }
+    },
+    "api_equiv_usd": 0.1985
+  }
+}

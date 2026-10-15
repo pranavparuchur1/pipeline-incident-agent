@@ -1,0 +1,163 @@
+{
+  "incident": "F4",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\F4-20261015-153608",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "a74ad996-783d-492b-9ed1-30208423fead",
+    "failed_step": "transform",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run a74ad996 for 2026-10-01 failed in the transform step because someone changed dim_customers so it reads c.country_iso. That column doesn't exist: stg_customers and the customers file upstream sent still use `country`. I've proposed reverting dim_customers to the deployed version. It hasn't been applied or rerun yet; the harness will apply it, rerun the pipeline and check the result.",
+        "root_cause": {
+          "family": "failed_job",
+          "cause": "bad_model_deploy",
+          "table": "customers",
+          "column": "country",
+          "model": "dim_customers",
+          "explanation": "The running dim_customers.sql differs from the deployed version: c.country was replaced with c.country_iso. stg_customers has no column with that name, so the build stopped with a Binder Error. Ingest succeeded, and the 2026-10-01 customers file matches the contract (its header has `country`), so the incoming data is not the cause."
+        },
+        "evidence": [
+          {
+            "claim": "The transform step failed. Ingest succeeded.",
+            "evidence_ids": [
+              "run:a74ad996"
+            ]
+          },
+          {
+            "claim": "dim_customers errored because it references column country_iso, which doesn't exist",
+            "evidence_ids": [
+              "log:248",
+              "log:251"
+            ]
+          },
+          {
+            "claim": "dim_customers is the only changed model, and its diff replaces country with country_iso",
+            "evidence_ids": [
+              "model:changes",
+              "model:dim_customers"
+            ]
+          },
+          {
+            "claim": "The customers file upstream sent matches the contract and still uses the column name `country`",
+            "evidence_ids": [
+              "landing:customers@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The runbook says to revert the model that changed",
+            "evidence_ids": [
+              "runbook:failed_jobs#model-errors-after-a-deploy"
+            ]
+          }
+        ],
+        "confidence": 0.93,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream renamed the column (country to country_iso): ruled out, because the file still has `country` and nothing is missing from the contract",
+          "A staging model change caused the error: ruled out, because dim_customers is the only changed model",
+          "The change was a deliberate business-logic change, which would mean escalating to analytics_engineering: unlikely, because it references a column that doesn't exist anywhere upstream",
+          "A one-off failure that a plain rerun would fix: ruled out, because the Binder Error comes from the code and would happen again on every run"
+        ]
+      },
+      "proposal": {
+        "ts": 1792093025.784943,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "dim_customers"
+            }
+          }
+        ],
+        "rationale": "dim_customers is the only changed model; its diff swaps c.country for c.country_iso, a column stg_customers/landing data do not have (landing header still has 'country', ingest succeeded). Reverting restores the deployed, working SQL.",
+        "evidence_ids": [
+          "log:248",
+          "model:changes",
+          "model:dim_customers",
+          "landing:customers@2026-10-01",
+          "runbook:failed_jobs#model-errors-after-a-deploy",
+          "run:a74ad996"
+        ]
+      },
+      "applied": [
+        "reverted models/marts/dim_customers.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 32.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.93,
+      "seconds": 32.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 7,
+    "cited_ids_total": 7,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 7,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 41660,
+        "output_tokens": 1684,
+        "api_equiv_usd": 0.0996
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.0996
+  }
+}

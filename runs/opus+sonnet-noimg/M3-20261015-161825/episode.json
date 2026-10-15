@@ -1,0 +1,185 @@
+{
+  "incident": "M3",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\M3-20261015-161825",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "e7916e3a-4e99-4251-b6d9-b7d9e4afcbe5",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run e7916e3a for 2026-10-01 failed at the ingest step because the order_items landing file for that day was never delivered. The orders, payments and customers files for the same day arrived and look normal, so the gap affects only order_items. I've proposed asking upstream to re-export order_items for 2026-10-01, which is what the runbook says to do. A rerun can only succeed once the file has arrived. If redelivery doesn't fix it, escalate to upstream_app_team.",
+        "root_cause": {
+          "family": "missing_partition",
+          "cause": "file_missing",
+          "table": "order_items",
+          "column": null,
+          "model": null,
+          "explanation": "The file landing/order_items/dt=2026-10-01/order_items.csv is missing, even though the partition directory exists. Ingest failed loudly with IngestError: landing file missing. The 09-30 order_items file was normal, and the other 10-01 tables were delivered with valid headers and continuous id ranges. That points to a one-off export or delivery gap for order_items alone, not a schema or model change."
+        },
+        "evidence": [
+          {
+            "claim": "Run e7916e3a failed at ingest because order_items.csv for 2026-10-01 is missing",
+            "evidence_ids": [
+              "run:e7916e3a",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The order_items file is absent from the dt=2026-10-01 directory; the 09-30 file was normal",
+            "evidence_ids": [
+              "landing:order_items@2026-10-01",
+              "landing:order_items@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The other tables for 2026-10-01 were delivered and look normal, so the export ran",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:payments@2026-10-01",
+              "landing:customers@2026-10-01",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The ingest config is at defaults, so no config change caused this",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook maps a missing landing file to request_upstream_redelivery, and a rerun alone won't help",
+            "evidence_ids": [
+              "runbook:missing_data#step-2-missing-file-vs-empty-file",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:2"
+            ]
+          },
+          {
+            "claim": "If the problem persists after redelivery, escalate to upstream_app_team",
+            "evidence_ids": [
+              "runbook:failed_jobs#escalation"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "rerun_only: rejected, because the file is still missing and a rerun would fail the same way",
+          "File delivered under another name or path: the tool can only check the contract path, so this can't be ruled out, but redelivery to the contract path fixes it either way",
+          "Empty or partial export: ruled out, because ingest found no file at all rather than a header-only one",
+          "Model change: not relevant, because the run failed at ingest before any dbt step ran",
+          "escalate_to_owner(upstream_app_team): kept as the next step if redelivery fails"
+        ]
+      },
+      "proposal": {
+        "ts": 1792095545.8921251,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "order_items"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "Ingest failed because landing/order_items/dt=2026-10-01/order_items.csv was never delivered. The other tables for that day arrived complete and the ingest config is at defaults, so this is a one-off delivery gap affecting only order_items. The runbook policy says to request upstream redelivery for a missing landing file. A plain rerun would hit the same error.",
+        "evidence_ids": [
+          "run:e7916e3a",
+          "log:243",
+          "landing:order_items@2026-10-01",
+          "landing:order_items@2026-09-30",
+          "landing:orders@2026-10-01",
+          "landing:payments@2026-10-01",
+          "landing:customers@2026-10-01",
+          "config:ingest",
+          "runbook:missing_data#step-2-missing-file-vs-empty-file",
+          "runbook:remediation_policy#choosing-quickly",
+          "worker:1",
+          "worker:2"
+        ]
+      },
+      "applied": [
+        "upstream re-exported order_items (840 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 43.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 43.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 14,
+    "cited_ids_total": 14,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 16,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 30424,
+        "output_tokens": 2101,
+        "api_equiv_usd": 0.103
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 21410,
+        "output_tokens": 2375,
+        "api_equiv_usd": 0.069
+      }
+    },
+    "api_equiv_usd": 0.172
+  }
+}

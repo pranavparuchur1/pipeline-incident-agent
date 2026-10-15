@@ -1,0 +1,170 @@
+{
+  "incident": "S8",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\S8-20261015-153133",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "d1e21651-b0da-43f9-b3ea-2cd84a09a9cb",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "nightly run d1e21651 (2026-10-01) failed at the ingest step. The upstream customers.csv now has a new column, marketing_opt_in, that isn't in the raw contract. All contract columns are still there and the file parses cleanly. I've proposed a fix: ignore_extra_columns on customers for marketing_opt_in. The pipeline will be rerun to check it.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_added",
+          "table": "customers",
+          "column": null,
+          "model": null,
+          "explanation": "Upstream added a new column, marketing_opt_in, to the customers landing file. Ingest compares the file header to the raw.customers contract and fails on any mismatch. Here the only mismatch is this extra column: no contract columns are missing, and there are no parse problems."
+        },
+        "evidence": [
+          {
+            "claim": "Run d1e21651 failed at ingest with a schema mismatch on raw.customers: no missing columns, one unexpected column (marketing_opt_in).",
+            "evidence_ids": [
+              "run:d1e21651",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The 2026-10-01 customers landing file has all contract columns plus marketing_opt_in, 30 rows and no parse problems.",
+            "evidence_ids": [
+              "landing:customers@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The orders file for the same day matches the contract, so this is not a general bad delivery.",
+            "evidence_ids": [
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The runbook says an unexpected column with nothing missing means upstream added a column, and the fix is ignore_extra_columns.",
+            "evidence_ids": [
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          },
+          {
+            "claim": "The ingest config is at its defaults, so nothing is set to ignore the new column yet.",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          }
+        ],
+        "confidence": 0.93,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Column rename: ruled out because no contract column is missing.",
+          "Asking upstream to re-send the file: not appropriate, because adding a column looks like a deliberate, lasting change and the runbook says to adapt ingest instead.",
+          "Corrupt or partial file: ruled out because the file ends cleanly, has no parse problems and has normal rows.",
+          "A dbt model change: ruled out because the run failed at ingest, before any transform ran."
+        ]
+      },
+      "proposal": {
+        "ts": 1792092717.7370539,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "ignore_extra_columns",
+            "params": {
+              "table": "customers",
+              "columns": [
+                "marketing_opt_in"
+              ]
+            }
+          }
+        ],
+        "rationale": "Upstream added a new non-contract column 'marketing_opt_in' to customers.csv; all contract columns are present and the file is otherwise well-formed (30 rows, no parse problems). Per runbook, a new non-contract column is handled by ignoring it at ingest.",
+        "evidence_ids": [
+          "log:243",
+          "run:d1e21651",
+          "landing:customers@2026-10-01",
+          "runbook:schema_changes#symptom-to-cause",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:remediation_policy#choosing-quickly",
+          "config:ingest"
+        ]
+      },
+      "applied": [
+        "ingest now ignores upstream columns ['marketing_opt_in'] on raw.customers"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 25.3,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": false,
+        "targets": {
+          "table": true,
+          "column": false
+        },
+        "correct": false
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.93,
+      "seconds": 25.3
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": false,
+        "targets": {
+          "table": true,
+          "column": false
+        },
+        "correct": false
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 8,
+    "cited_ids_total": 8,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 8,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 43901,
+        "output_tokens": 1850,
+        "api_equiv_usd": 0.1153
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1153
+  }
+}

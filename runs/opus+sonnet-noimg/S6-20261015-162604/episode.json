@@ -1,0 +1,188 @@
+{
+  "incident": "S6",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\S6-20261015-162604",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "6ef3830a-128e-40f7-baf0-15bd02629091",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (run 6ef3830a) failed at ingest because upstream renamed the payments column `amount` to `amount_usd`. Nothing else about the file appears to have changed, though only about 4 of the 417 amount values could be read. The proposed fix maps `amount_usd` to the contract column `amount` at ingest, and the rerun will check it. Redelivery won't help, because a re-export would have the same header.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_renamed",
+          "table": "payments",
+          "column": "amount",
+          "model": null,
+          "explanation": "Starting 2026-10-01, upstream's payments.csv has the header amount_usd where the contract expects amount. The other columns, their order, the timestamp format and the method values are unchanged. The ingest config has no column mapping, and ingest matches columns by name, so the payments load failed with 'missing amount, unexpected amount_usd'. The few amount_usd values visible are plain decimal dollars on the same scale as before, so this looks like a rename that doesn't change what the column means."
+        },
+        "evidence": [
+          {
+            "claim": "Run 6ef3830a for 2026-10-01 failed at ingest with a schema mismatch on payments: amount is missing and amount_usd is unexpected. The two runs before it succeeded.",
+            "evidence_ids": [
+              "run:6ef3830a",
+              "log:243",
+              "run:b62948b3"
+            ]
+          },
+          {
+            "claim": "The 10-01 file has the same 5 columns in the same order as the 09-30 file, with only amount renamed to amount_usd.",
+            "evidence_ids": [
+              "landing:payments@2026-10-01",
+              "landing:payments@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The visible amount_usd values (4.99, 19.98, 114.96, 99.98) are plain decimals with no currency symbols and fit past amount ranges (min always 4.99, mean about 94\u2013113). Only about 4 of 417 values could be read.",
+            "evidence_ids": [
+              "landing:payments@2026-10-01",
+              "sql:d5b47261",
+              "worker:3"
+            ]
+          },
+          {
+            "claim": "The row count (417) and payment_id gaps (22) are within normal daily variation, so this isn't a partial export.",
+            "evidence_ids": [
+              "sql:d5b47261",
+              "worker:3"
+            ]
+          },
+          {
+            "claim": "The ingest config is empty, so nothing maps amount_usd to amount.",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says to handle a rename with unchanged meaning with apply_column_mapping, and not to request redelivery for it.",
+            "evidence_ids": [
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:schema_changes#why-asking-upstream-to-resend-does-not-fix-this",
+              "runbook:schema_changes#symptom-to-cause",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: rejected. A rename is a deliberate, lasting change, so a re-export would have the same header.",
+          "Unit or meaning change (e.g. cents, or a converted currency) that should go to upstream_app_team: not supported by what we could see. The visible values match the earlier dollar scale, but only about 4 rows were checked; the rerun is the full check.",
+          "set_column_parser strip_currency: not needed, since no '$' or separators were seen in the values that could be read.",
+          "Partial export or row-count drop: ruled out, since the row count and ID gaps are within normal ranges.",
+          "Bad dbt model deploy: not relevant, since the run failed at ingest before any dbt models ran."
+        ]
+      },
+      "proposal": {
+        "ts": 1792096035.605664,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "apply_column_mapping",
+            "params": {
+              "table": "payments",
+              "source_column": "amount_usd",
+              "target_column": "amount"
+            }
+          }
+        ],
+        "rationale": "Upstream renamed payments.amount to amount_usd starting 2026-10-01. Only that one header changed, and the column order is the same. The sampled values are plain decimal dollars on the same scale as earlier days, with no currency symbols. The row count and payment_id gaps are within normal ranges. Ingest config has no mapping, so the load fails on a name mismatch. The runbook says to handle a rename with unchanged meaning by mapping the column at ingest, and that redelivery would not help.",
+        "evidence_ids": [
+          "run:6ef3830a",
+          "log:243",
+          "config:ingest",
+          "landing:payments@2026-10-01",
+          "landing:payments@2026-09-30",
+          "sql:d5b47261",
+          "runbook:schema_changes#symptom-to-cause",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:schema_changes#why-asking-upstream-to-resend-does-not-fix-this",
+          "worker:1",
+          "worker:2",
+          "worker:3"
+        ]
+      },
+      "applied": [
+        "ingest now reads raw.payments.amount from upstream column 'amount_usd'"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 81.9,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 81.9
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 16,
+    "cited_ids_total": 16,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 19,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 66064,
+        "output_tokens": 3445,
+        "api_equiv_usd": 0.1774
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 37778,
+        "output_tokens": 4189,
+        "api_equiv_usd": 0.1106
+      }
+    },
+    "api_equiv_usd": 0.288
+  }
+}

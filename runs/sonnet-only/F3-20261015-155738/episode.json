@@ -1,0 +1,167 @@
+{
+  "incident": "F3",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\F3-20261015-155738",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "461e2d17-5520-4805-bbe0-ec1c529c2bc0",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Nightly ingest for 2026-10-01 failed because the orders.csv landing file is truncated mid-row. It stops at line 266 with 3 of 7 fields and has 265 rows, against 461 the day before. The header is unchanged. I proposed requesting upstream redelivery of orders for 2026-10-01, then rerunning.",
+        "root_cause": {
+          "family": "failed_job",
+          "cause": "corrupt_landing_file",
+          "table": "orders",
+          "column": null,
+          "model": null,
+          "explanation": "The upstream export of orders for 2026-10-01 was interrupted. The file is cut off mid-row (line 266: '13666,952,2'), has no trailing newline, and ends at order_id 13666. order_items and payments reference order_ids up to 13841, so rows are missing. Strict CSV parsing then fails the ingest step."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed on raw.orders with a CSV column-count error at line 266 (3 columns found, 7 expected)",
+            "evidence_ids": [
+              "run:461e2d17",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The orders file is truncated mid-row with the header intact, and has 265 rows against 461 the previous day",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The other 10-01 tables are complete, and order_items and payments reference orders past the truncation point",
+            "evidence_ids": [
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The runbook says a truncated file is a one-off delivery glitch to be fixed by redelivery, not by editing the file or changing the schema",
+            "evidence_ids": [
+              "runbook:failed_jobs#corrupt-or-truncated-landing-files",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Schema change (renamed, added or type-changed column): ruled out because the header matches the contract and the error is a parse error, not a schema mismatch or cast error",
+          "Ignore errors or null padding on ingest: rejected because it would load a partial orders table and hide about 40% missing data",
+          "Truncate the file to the last good row or hand-edit it: rejected because the runbook forbids it and the missing orders would be lost",
+          "rerun_only: rejected because the same truncated file would fail again",
+          "Escalate to upstream_app_team: kept as the fallback if redelivery returns the same broken file"
+        ]
+      },
+      "proposal": {
+        "ts": 1792094310.3105736,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The orders landing file for 2026-10-01 is truncated mid-row. The header matches the contract. A partial export is a one-off delivery problem, and the runbook maps it to redelivery. Relaxing the parser would silently drop the missing orders.",
+        "evidence_ids": [
+          "log:243",
+          "run:461e2d17",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "worker:1",
+          "worker:2",
+          "runbook:failed_jobs#corrupt-or-truncated-landing-files"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 46.9,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 46.9
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 11,
+    "cited_ids_total": 11,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 13,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 22691,
+        "output_tokens": 1820,
+        "api_equiv_usd": 0.0513
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 20418,
+        "output_tokens": 2392,
+        "api_equiv_usd": 0.0623
+      }
+    },
+    "api_equiv_usd": 0.1136
+  }
+}

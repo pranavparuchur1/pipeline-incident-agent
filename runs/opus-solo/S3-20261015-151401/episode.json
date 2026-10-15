@@ -1,0 +1,169 @@
+{
+  "incident": "S3",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\S3-20261015-151401",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "51db8950-519c-4ab5-bd2a-abf0f2812b9f",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run 51db8950 for 2026-10-01 failed at the ingest step. Upstream now sends orders.order_total with a \"$\" in front (e.g. \"$4.99\"), and those values can't be loaded into the DECIMAL(12,2) contract column. The file's columns match the contract, its row count is normal and the \"$\" format appears throughout it, so this looks like a deliberate format change. I've proposed adding the strip_currency parser for raw.orders.order_total; it hasn't been applied or tested yet.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_type_changed",
+          "table": "orders",
+          "column": "order_total",
+          "model": null,
+          "explanation": "Upstream changed the format of order_total from a plain number to a string with a '$' in front. Ingest tries to convert it to DECIMAL(12,2) and fails on \"$4.99\". The column names match the contract, there are 440 rows (recent days ran 412\u2013534) and both the first and last lines use the '$' format, so the file is not partial or corrupt; only the value format changed."
+        },
+        "evidence": [
+          {
+            "claim": "Run 51db8950 failed at ingest with a conversion error: \"$4.99\" could not be turned into DECIMAL(12,2) for order_total",
+            "evidence_ids": [
+              "run:51db8950",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The landing file's columns match the contract and both its first and last lines show '$'-prefixed order_total values",
+            "evidence_ids": [
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The row count of 440 is within the recent normal range (412\u2013534), so this is not a partial delivery",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "schema:raw.orders"
+            ]
+          },
+          {
+            "claim": "No parser is currently set up for this column",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook maps this error to a reformatted value and says to fix '$'-formatted amounts with set_column_parser strip_currency",
+            "evidence_ids": [
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.92,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Corrupt or one-off bad file needing redelivery: unlikely, because the columns match the contract, the row count is normal and both sampled lines (first and last) use the same '$' format",
+          "Column renamed, added or dropped: ruled out, because the header matches the contract exactly",
+          "Bad dbt model deploy: ruled out, because the run failed at ingest before any dbt step",
+          "Transient failure (rerun only): ruled out, because the conversion error comes from the data itself and would happen again"
+        ]
+      },
+      "proposal": {
+        "ts": 1792091684.8775997,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "set_column_parser",
+            "params": {
+              "table": "orders",
+              "column": "order_total",
+              "parser": "strip_currency"
+            }
+          }
+        ],
+        "rationale": "Upstream now formats orders.order_total with a '$' prefix (e.g. \"$4.99\"), consistently across the whole 2026-10-01 file (first and last lines). Header matches the contract and the row count (440) is in the normal range, so this is a deliberate value reformat, not a corrupt or partial delivery. Per the runbook, '$'-formatted amounts are handled with the strip_currency parser at ingest, which gives back the correct DECIMAL values.",
+        "evidence_ids": [
+          "run:51db8950",
+          "log:243",
+          "landing:orders@2026-10-01",
+          "schema:raw.orders",
+          "config:ingest",
+          "runbook:schema_changes#symptom-to-cause",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "ingest now parses raw.orders.order_total with strip_currency"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 39.5,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.92,
+      "seconds": 39.5
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 8,
+    "cited_ids_total": 8,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 7,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 44991,
+        "output_tokens": 1948,
+        "api_equiv_usd": 0.1143
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1143
+  }
+}

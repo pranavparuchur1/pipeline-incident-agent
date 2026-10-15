@@ -1,0 +1,134 @@
+{
+  "incident": "S5",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\S5-20261015-154638",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "c9172cb6-78c2-4b72-84c7-3d2c7772b3f7",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Ingest of raw.payments failed for 2026-10-01 because upstream's payments.csv no longer contains the required `method` column. The header is payment_id, order_id, amount, paid_ts. No column was renamed and nothing was added, and the row count is normal at 417. No safe pipeline-side fix exists, so I'm escalating to the upstream app team to restore `method` or confirm the removal is intentional.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_dropped",
+          "table": "raw.payments",
+          "column": "method",
+          "model": null,
+          "explanation": "The 2026-10-01 payments.csv header lacks the contract column `method` (VARCHAR), which was present on 2026-09-30. There is no unexpected column, so this is a drop rather than a rename. No other field holds method values, so an ingest mapping or parser cannot recover it. Ignoring or defaulting a contract column would hide missing data. Redelivery would re-export the same persistent upstream schema, so it would not restore the column."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed on raw.payments with missing ['method'] and no unexpected columns.",
+            "evidence_ids": [
+              "run:c9172cb6",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The 2026-10-01 file header is payment_id, order_id, amount, paid_ts with 417 rows (normal volume). No field holds method values. The 2026-09-30 file had method as its third column.",
+            "evidence_ids": [
+              "landing:payments@2026-10-01",
+              "landing:payments@2026-09-30",
+              "worker:1",
+              "schema:raw.payments"
+            ]
+          },
+          {
+            "claim": "No ingest config or column mapping exists that could affect this.",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "Runbooks: a missing column with no unexpected column means the column was dropped upstream, which is escalated to upstream_app_team. Mapping is only for renames, and redelivery is for missing, corrupt or partial files.",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "escalate",
+        "escalation_owner": "upstream_app_team",
+        "alternatives_considered": [
+          "apply_column_mapping: rejected, since there is no unexpected column and nothing holds method values",
+          "ignore_extra_columns: rejected, since there are no extra columns and contract columns cannot be ignored",
+          "request_upstream_redelivery: rejected, since this is a persistent schema change and not a one-off delivery problem",
+          "revert_model_change/rerun_only: rejected, since no dbt model is involved and a rerun would fail the same way",
+          "Make `method` optional or fill it with a default: rejected, since it would silently lose payment method data"
+        ]
+      },
+      "proposal": null,
+      "applied": [],
+      "apply_error": null,
+      "recovered": false,
+      "verification": null,
+      "seconds": 43.5,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "escalate",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "escalate",
+      "recovered": false,
+      "confidence": 0.9,
+      "seconds": 43.5
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "escalate",
+      "recovered": false
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 10,
+    "cited_ids_total": 10,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 10,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 30894,
+        "output_tokens": 1691,
+        "api_equiv_usd": 0.0468
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 21107,
+        "output_tokens": 2129,
+        "api_equiv_usd": 0.0625
+      }
+    },
+    "api_equiv_usd": 0.1093
+  }
+}

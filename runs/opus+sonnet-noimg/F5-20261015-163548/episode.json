@@ -1,0 +1,181 @@
+{
+  "incident": "F5",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\F5-20261015-163548",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "00e4e171-6c26-4f5f-8d89-5982a3a96cc0",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (00e4e171) failed because of an undeployed change to the dbt model stg_payments. The change renamed `amount` to `amount_usd`, so fct_orders and the test assert_payments_match_orders fail with \"column amount not found\", and fct_orders has 0 rows for 2026-10-01. The upstream payments file and ingest are fine. The proposed fix reverts stg_payments to the deployed version; the harness will apply it and rerun the pipeline.",
+        "root_cause": {
+          "family": "failed_job",
+          "cause": "bad_model_deploy",
+          "table": "payments",
+          "column": "amount",
+          "model": "stg_payments",
+          "explanation": "stg_payments was edited to `amount as amount_usd`. Downstream, fct_orders (sum(amount)) and the test assert_payments_match_orders still read `amount` from stg_payments, so they hit Binder Errors and fct_orders has no 2026-10-01 rows. The landing payments header is unchanged and still has `amount`."
+        },
+        "evidence": [
+          {
+            "claim": "The quality_checks step failed with 6 checks, including Binder Errors on `amount` that list `amount_usd` as a candidate column",
+            "evidence_ids": [
+              "run:00e4e171",
+              "check:assert_payments_match_orders@00e4e171",
+              "check:not_null_stg_payments_amount.4739fb3aea@00e4e171",
+              "log:248",
+              "log:254"
+            ]
+          },
+          {
+            "claim": "fct_orders has 0 rows for 2026-10-01 against 440 raw orders, and its latest order date is 2026-09-30",
+            "evidence_ids": [
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:freshness:marts.fct_orders@live"
+            ]
+          },
+          {
+            "claim": "stg_payments is the only changed model, and its diff renames amount to amount_usd. fct_orders still uses amount",
+            "evidence_ids": [
+              "model:changes",
+              "model:stg_payments",
+              "model:fct_orders",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "Upstream did not change: the payments header still has `amount` on both 09-30 and 10-01, the ingest config is default, and raw row counts are normal",
+            "evidence_ids": [
+              "landing:payments@2026-10-01",
+              "landing:payments@2026-09-30",
+              "config:ingest",
+              "check:row_count_trend:raw.payments@live",
+              "worker:2"
+            ]
+          },
+          {
+            "claim": "The runbook says to revert the model that changed, not the one that errored",
+            "evidence_ids": [
+              "runbook:failed_jobs#model-errors-after-a-deploy",
+              "worker:3"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream renamed the column (fix with apply_column_mapping): ruled out because the landing header still has `amount` and ingest succeeded",
+          "Partial or missing delivery: ruled out because raw partitions are present and row counts are within the normal range",
+          "Escalate to analytics_engineering because the rename might be intentional: I found nothing showing it was intended, and the downstream models were never updated to match, so reverting is the safe fix",
+          "rerun_only: it would not help, because the model change would still be in place"
+        ]
+      },
+      "proposal": {
+        "ts": 1792096652.70537,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "stg_payments"
+            }
+          }
+        ],
+        "rationale": "An undeployed edit to stg_payments renamed `amount` to `amount_usd`. fct_orders and assert_payments_match_orders still select `amount`, so they hit Binder Errors and fct_orders has no rows for 2026-10-01. The upstream payments file did not change and still has `amount`, and ingest succeeded. Per the runbook, revert the model that changed.",
+        "evidence_ids": [
+          "model:changes",
+          "model:stg_payments",
+          "model:fct_orders",
+          "log:248",
+          "log:254",
+          "landing:payments@2026-10-01",
+          "landing:payments@2026-09-30",
+          "config:ingest",
+          "runbook:failed_jobs#model-errors-after-a-deploy",
+          "check:reconciliation:raw.orders->marts.fct_orders@live",
+          "worker:1",
+          "worker:2",
+          "worker:3"
+        ]
+      },
+      "applied": [
+        "reverted models/staging/stg_payments.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 86.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 86.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 18,
+    "cited_ids_total": 18,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 17,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 70714,
+        "output_tokens": 2345,
+        "api_equiv_usd": 0.2271
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 42116,
+        "output_tokens": 3815,
+        "api_equiv_usd": 0.1008
+      }
+    },
+    "api_equiv_usd": 0.3279
+  }
+}

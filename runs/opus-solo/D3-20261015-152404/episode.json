@@ -1,0 +1,180 @@
+{
+  "incident": "D3",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\D3-20261015-152404",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "c838e6df-c930-43de-8ebf-4ab54749bede",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "nightly run c838e6df (partition 2026-10-01) failed at quality_checks because the upstream orders file for 2026-10-01 re-sent all 461 orders from 2026-09-30 on top of 440 real 2026-10-01 orders. That left 901 rows (195% of median) and 461 duplicate order_ids across partitions, so the stg_orders uniqueness test failed and the marts were skipped. No dbt models changed. Remediation: ask upstream to re-export orders for 2026-10-01.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "stale_rows_resent",
+          "table": "orders",
+          "column": null,
+          "model": null,
+          "explanation": "The 2026-10-01 orders landing file has 901 rows. 461 of them have order_ts on 2026-09-30, and every one of those order_ids is already in raw.orders under an earlier _dt. The other 440 are new 2026-10-01 orders. No key repeats inside the file. The repeated keys fail unique_stg_orders_order_id and assert_order_totals_match_items (461 rows each). The mart tests were skipped, so fct_orders has 0 rows for 2026-10-01 and the freshness and reconciliation checks fail."
+        },
+        "evidence": [
+          {
+            "claim": "Run c838e6df failed at quality_checks; ingest and transform succeeded",
+            "evidence_ids": [
+              "run:c838e6df"
+            ]
+          },
+          {
+            "claim": "raw.orders 2026-10-01 has 901 rows vs a trailing median of 461; other tables are normal",
+            "evidence_ids": [
+              "check:row_count_trend:raw.orders@live",
+              "check:row_count_trend:raw.order_items@live",
+              "check:row_count_trend:raw.payments@live",
+              "schema:raw.orders"
+            ]
+          },
+          {
+            "claim": "461 rows in the file are 2026-09-30 orders whose ids already exist in earlier partitions; the 440 2026-10-01 rows are unique and new",
+            "evidence_ids": [
+              "sql:004f081c",
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "Duplicate order_ids caused the stg uniqueness and order-total test failures, which led to skipped mart tests and the freshness/reconciliation failures",
+            "evidence_ids": [
+              "check:unique_stg_orders_order_id.e3b841c71a@c838e6df",
+              "check:assert_order_totals_match_items@c838e6df",
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:freshness:marts.fct_orders@live"
+            ]
+          },
+          {
+            "claim": "No dbt model changed versus the deployed version",
+            "evidence_ids": [
+              "model:changes"
+            ]
+          },
+          {
+            "claim": "Runbook classifies this as Cause B (stale re-send) and prescribes upstream redelivery",
+            "evidence_ids": [
+              "runbook:duplicates#cause-b-stale-rows-re-sent-from-a-previous-day",
+              "runbook:duplicates#how-to-distinguish",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.92,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Within-file duplicates (deduplicate_on_ingest): rejected because no key repeats inside the file; the duplicates are across partitions, so ingest dedupe would not remove them",
+          "Bad dbt model deploy (revert_model_change): rejected because no changed models",
+          "Genuine volume spike: rejected because the extra 461 rows are exactly the 2026-09-30 orders with old timestamps",
+          "Transient failure (rerun_only): rejected because the data itself is wrong"
+        ]
+      },
+      "proposal": {
+        "ts": 1792092310.948891,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The orders file for 2026-10-01 has 901 rows: 440 new 2026-10-01 orders plus 461 orders from 2026-09-30 that were sent again. All 461 stale order_ids are already in raw under earlier partitions. Inside the file every key is unique. This matches runbook Cause B (stale rows re-sent), and the policy for that is upstream redelivery. Deduplicating on ingest would not remove these rows, because they are only duplicates across partitions. No dbt models changed.",
+        "evidence_ids": [
+          "landing:orders@2026-10-01",
+          "sql:004f081c",
+          "check:row_count_trend:raw.orders@live",
+          "check:unique_stg_orders_order_id.e3b841c71a@c838e6df",
+          "model:changes",
+          "runbook:duplicates#cause-b-stale-rows-re-sent-from-a-previous-day",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 42.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.92,
+      "seconds": 42.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 15,
+    "cited_ids_total": 15,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 9,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 108848,
+        "output_tokens": 2703,
+        "api_equiv_usd": 0.2338
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.2338
+  }
+}

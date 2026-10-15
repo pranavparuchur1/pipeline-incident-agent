@@ -1,0 +1,136 @@
+{
+  "incident": "S7",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\S7-20261015-162745",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "0250df8d-87ca-4da8-9f84-4510a65786ea",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "nightly run 0250df8d (partition 2026-10-01) failed at ingest because upstream started sending order_items.quantity as text with a unit suffix ('1 units') instead of plain integers. The column names and other columns are unchanged, and the change looks uniform across the file. No allow-listed parser can strip a unit suffix, and the runbook says to escalate when units or meaning may have changed, so this goes to the upstream app team to restore the integer format or agree a contract change.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_type_changed",
+          "table": "order_items",
+          "column": "quantity",
+          "model": null,
+          "explanation": "The 2026-10-01 landing file order_items.csv has quantity values like '1 units' and '2 units'. On 2026-09-30 they were plain integers like '1'. Ingest casts quantity to INTEGER, which fails with a Conversion Error. The column names match the contract and the ingest config is empty, so the cause is a change in upstream value format, not anything in our pipeline."
+        },
+        "evidence": [
+          {
+            "claim": "Run 0250df8d failed at ingest converting '1 units' to INT32 for raw.order_items.quantity; prior runs succeeded",
+            "evidence_ids": [
+              "run:0250df8d",
+              "log:243",
+              "run:b62948b3",
+              "run:0122e4b4"
+            ]
+          },
+          {
+            "claim": "2026-10-01 quantity values carry ' units' suffix while 2026-09-30 were plain integers; header unchanged and matching the contract",
+            "evidence_ids": [
+              "landing:order_items@2026-10-01",
+              "landing:order_items@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "Ingest config is empty; no pipeline-side change",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "Only strip_currency parser exists, which cannot strip a unit suffix; runbook says escalate when units/semantics may change and when nothing safe applies",
+            "evidence_ids": [
+              "runbook:remediation_policy#allow-listed-actions",
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.82,
+        "decision": "escalate",
+        "escalation_owner": "upstream_app_team",
+        "alternatives_considered": [
+          "set_column_parser strip_currency: rejected because it only removes '$' and ',', not ' units'.",
+          "request_upstream_redelivery: rejected because the change looks deliberate and uniform, so a re-export would likely keep the same format.",
+          "rerun_only: rejected because the same conversion error would recur.",
+          "revert_model_change: rejected because the failure happens at ingest, before any dbt model runs, and no model change is implicated.",
+          "Separate partial-export issue (rows fell from 956 to 840): not investigated and possibly normal daily variation; verify after the file loads."
+        ]
+      },
+      "proposal": null,
+      "applied": [],
+      "apply_error": null,
+      "recovered": false,
+      "verification": null,
+      "seconds": 59.4,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "escalate",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "escalate",
+      "recovered": false,
+      "confidence": 0.82,
+      "seconds": 59.4
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "escalate",
+      "recovered": false
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 12,
+    "cited_ids_total": 12,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 11,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 22392,
+        "output_tokens": 2664,
+        "api_equiv_usd": 0.1216
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 19689,
+        "output_tokens": 2698,
+        "api_equiv_usd": 0.0653
+      }
+    },
+    "api_equiv_usd": 0.1869
+  }
+}

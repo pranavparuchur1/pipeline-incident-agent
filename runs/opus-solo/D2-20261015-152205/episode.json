@@ -1,0 +1,188 @@
+{
+  "incident": "D2",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\D2-20261015-152205",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "dd89c994-398f-445e-b364-4920eef57760",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run dd89c994 for partition 2026-10-01 failed because the order_items file for that day has 42 order_item_id values that each appear twice, with identical content. The extra rows broke unique_stg_order_items_order_item_id and assert_order_totals_match_items, and fct_orders ended up with 0 rows for the day, so the freshness and reconciliation checks failed too. Proposed fix: deduplicate order_items on ingest by order_item_id. No dbt models changed.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "duplicate_rows_in_file",
+          "table": "order_items",
+          "column": "order_item_id",
+          "model": "stg_order_items",
+          "explanation": "The upstream order_items export for 2026-10-01 has 882 rows but only 840 distinct order_item_ids, and 840 distinct full rows. So 42 rows are exact copies of other rows in the same file. None of these ids appear in any other partition, which rules out stale rows re-sent from an earlier day. Staging does no deduplication, so the copies flowed into stg_order_items. They failed the unique test and the order-total-vs-items test, the fct_orders tests were skipped, and fct_orders had no rows for 2026-10-01 (freshness and reconciliation failed)."
+        },
+        "evidence": [
+          {
+            "claim": "Run dd89c994 failed at quality_checks. Ingest and transform succeeded.",
+            "evidence_ids": [
+              "run:dd89c994"
+            ]
+          },
+          {
+            "claim": "The unique order_item_id test on stg_order_items and the order-totals test each failed with 42 rows. The fct_orders tests were skipped.",
+            "evidence_ids": [
+              "log:248",
+              "check:unique_stg_order_items_order_item_id.90e333a108@dd89c994",
+              "check:assert_order_totals_match_items@dd89c994",
+              "check:not_null_fct_orders_order_id.4e687af8d0@dd89c994",
+              "check:unique_fct_orders_order_id.523ddb6ce5@dd89c994"
+            ]
+          },
+          {
+            "claim": "fct_orders has no rows for 2026-10-01, even though raw has 440 orders.",
+            "evidence_ids": [
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:freshness:marts.fct_orders@live"
+            ]
+          },
+          {
+            "claim": "The landing file has the right header and parses cleanly (882 rows), so this is not a schema or corruption problem.",
+            "evidence_ids": [
+              "landing:order_items@2026-10-01",
+              "log:245"
+            ]
+          },
+          {
+            "claim": "The duplicates are exact copies inside the same file: 882 rows, 840 distinct ids, 840 distinct full rows, and 0 overlap with other partitions.",
+            "evidence_ids": [
+              "sql:e70bf556",
+              "sql:8cd089be"
+            ]
+          },
+          {
+            "claim": "No dbt models differ from the deployed version.",
+            "evidence_ids": [
+              "model:changes"
+            ]
+          },
+          {
+            "claim": "The runbook's remediation for within-file duplicates is deduplicate_on_ingest on the primary key.",
+            "evidence_ids": [
+              "runbook:duplicates#how-to-distinguish",
+              "runbook:duplicates#choosing-the-dedupe-key",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Stale rows re-sent from an earlier day: ruled out, because none of the ids appear in another partition and all the copies are in the 2026-10-01 file.",
+          "Bad dbt model deploy: ruled out, because no models changed.",
+          "Schema change or corrupt file: ruled out, because the header matches the contract and there were no parse problems.",
+          "request_upstream_redelivery: would also work, but the copies are identical, so deduplicating on the primary key is the smaller fix and also guards against repeats. The dedupe setting stays on for future loads, so note it in the ticket and tell the upstream team.",
+          "Partial export: the 840 distinct items are about 90% of the median, but orders are 95% of the median and every order has items (440 distinct order_ids), so a low-volume day is more likely."
+        ]
+      },
+      "proposal": {
+        "ts": 1792092196.6164968,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "deduplicate_on_ingest",
+            "params": {
+              "table": "order_items",
+              "key": "order_item_id"
+            }
+          }
+        ],
+        "rationale": "The order_items landing file for 2026-10-01 has 42 exact duplicate rows inside the file: 882 rows, 840 distinct order_item_ids, 840 distinct full rows, and no overlap with other partitions. That is Cause A (within-file duplicates), not stale rows re-sent. The duplicates fail unique_stg_order_items_order_item_id and assert_order_totals_match_items, and fct_orders comes out empty, so the freshness and reconciliation checks fail too. Because the copies are identical, deduplicating on the primary key order_item_id keeps all real data. No dbt models changed.",
+        "evidence_ids": [
+          "sql:e70bf556",
+          "sql:8cd089be",
+          "landing:order_items@2026-10-01",
+          "log:248",
+          "check:unique_stg_order_items_order_item_id.90e333a108@dd89c994",
+          "check:assert_order_totals_match_items@dd89c994",
+          "model:changes",
+          "runbook:duplicates#how-to-distinguish",
+          "runbook:duplicates#choosing-the-dedupe-key",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "ingest now keeps one row per order_item_id when loading raw.order_items"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 48.2,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 48.2
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 16,
+    "cited_ids_total": 16,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 10,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 126208,
+        "output_tokens": 3227,
+        "api_equiv_usd": 0.2856
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.2856
+  }
+}

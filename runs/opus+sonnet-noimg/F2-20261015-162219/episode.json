@@ -1,0 +1,191 @@
+{
+  "incident": "F2",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\F2-20261015-162219",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "ff6f0993-0889-4c01-9713-feff4e049c12",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (run ff6f0993) failed at quality_checks because of an undeployed edit to the dbt model stg_orders. The edit renamed order_amount to amount_usd. fct_orders, dim_customers and several tests still use order_amount, so those marts errored or were skipped and fct_orders has 0 of the 440 orders for 2026-10-01. The upstream orders file and ingest are unchanged, so I've proposed reverting stg_orders and rerunning.",
+        "root_cause": {
+          "family": "failed_job",
+          "cause": "bad_model_deploy",
+          "table": null,
+          "column": "order_amount",
+          "model": "stg_orders",
+          "explanation": "stg_orders differs from the deployed version: `order_total as order_amount` became `order_total as amount_usd`. Downstream models (fct_orders, dim_customers) and tests (not_null_stg_orders_order_amount, assert_order_totals_match_items, assert_payments_match_orders) still use order_amount and fail with missing-column binder errors. The marts were skipped, so freshness and reconciliation fail too. The landing orders file and raw.orders match the contract (order_total, unchanged)."
+        },
+        "evidence": [
+          {
+            "claim": "Run ff6f0993: ingest and transform succeeded and quality_checks failed with 9 failing checks.",
+            "evidence_ids": [
+              "run:ff6f0993"
+            ]
+          },
+          {
+            "claim": "Tests fail because the order_amount column is missing from stg_orders and the order alias o.",
+            "evidence_ids": [
+              "check:not_null_stg_orders_order_amount.247151f42c@ff6f0993",
+              "check:assert_order_totals_match_items@ff6f0993",
+              "check:assert_payments_match_orders@ff6f0993"
+            ]
+          },
+          {
+            "claim": "fct_orders has 0 rows for 2026-10-01 against 440 raw orders, and its latest date is 2026-09-30.",
+            "evidence_ids": [
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:freshness:marts.fct_orders@live"
+            ]
+          },
+          {
+            "claim": "stg_orders is the only changed model, and the change renames order_amount to amount_usd. fct_orders and dim_customers still use order_amount.",
+            "evidence_ids": [
+              "model:changes",
+              "model:stg_orders",
+              "model:fct_orders",
+              "model:dim_customers",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The landing orders file for 2026-10-01 matches the contract and the previous day: same header, order_total unchanged, normal row count. The ingest config is at defaults.",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30",
+              "schema:raw.orders",
+              "config:ingest",
+              "worker:2",
+              "check:row_count_trend:raw.orders@live"
+            ]
+          },
+          {
+            "claim": "The runbook says to revert the model that changed, not the downstream model that errored.",
+            "evidence_ids": [
+              "runbook:failed_jobs#model-errors-after-a-deploy",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:3"
+            ]
+          }
+        ],
+        "confidence": 0.92,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream renamed a column (fix with apply_column_mapping): ruled out because the landing header and the raw.orders contract are unchanged and still use order_total.",
+          "Missing or partial delivery (fix with request_upstream_redelivery): ruled out because the raw partitions are present and row counts are normal.",
+          "Intentional rename (escalate to analytics_engineering): possible, but downstream models were not updated with it and nothing marks it as planned, so reverting is the safe fix. Analytics engineering can redo the rename together with the downstream updates.",
+          "Transient failure (rerun_only): ruled out because the binder errors are deterministic and come from the code change."
+        ]
+      },
+      "proposal": {
+        "ts": 1792095794.136214,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "stg_orders"
+            }
+          }
+        ],
+        "rationale": "An undeployed edit to stg_orders renamed order_amount to amount_usd. fct_orders, dim_customers and the order_amount tests still use order_amount, so those marts errored or were skipped, and fct_orders has 0 rows for 2026-10-01. The landing data and ingest are unchanged and match the contract. The runbook says to revert the model that changed.",
+        "evidence_ids": [
+          "model:changes",
+          "model:stg_orders",
+          "model:fct_orders",
+          "model:dim_customers",
+          "worker:1",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "schema:raw.orders",
+          "worker:2",
+          "check:not_null_stg_orders_order_amount.247151f42c@ff6f0993",
+          "check:assert_order_totals_match_items@ff6f0993",
+          "check:reconciliation:raw.orders->marts.fct_orders@live",
+          "runbook:failed_jobs#model-errors-after-a-deploy",
+          "runbook:remediation_policy#choosing-quickly",
+          "worker:3",
+          "run:ff6f0993"
+        ]
+      },
+      "applied": [
+        "reverted models/staging/stg_orders.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 54.2,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.92,
+      "seconds": 54.2
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 20,
+    "cited_ids_total": 20,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 18,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 72812,
+        "output_tokens": 2609,
+        "api_equiv_usd": 0.2401
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 30581,
+        "output_tokens": 3332,
+        "api_equiv_usd": 0.0961
+      }
+    },
+    "api_equiv_usd": 0.3362
+  }
+}

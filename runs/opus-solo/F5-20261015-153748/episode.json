@@ -1,0 +1,177 @@
+{
+  "incident": "F5",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\F5-20261015-153748",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "7e2a3c27-cc70-4c97-9d26-806c4486b4f5",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Run 7e2a3c27 (2026-10-01) failed because of an undeployed edit to stg_payments that renamed `amount` to `amount_usd`. Tests that reference stg_payments.amount errored, and fct_orders was skipped with an upstream failure, so the mart has 0 of the 440 orders. The upstream payments file is unchanged and matches the contract, so I've proposed reverting stg_payments to the deployed version.",
+        "root_cause": {
+          "family": "failed_job",
+          "cause": "bad_model_deploy",
+          "table": "payments",
+          "column": "amount",
+          "model": "stg_payments",
+          "explanation": "stg_payments differs from the deployed version: `amount` became `amount as amount_usd`. Tests that reference stg_payments.amount (not_null_stg_payments_amount, assert_payments_match_orders) hit a Binder Error, and fct_orders was skipped with an upstream failure. That left marts.fct_orders stale (latest date 2026-09-30) with 0 rows for 2026-10-01, against 440 in raw. The landing file still has the contract column `amount`, and ingest config is at defaults, so nothing changed upstream."
+        },
+        "evidence": [
+          {
+            "claim": "quality_checks failed on 6 checks after ingest and transform reported success",
+            "evidence_ids": [
+              "run:7e2a3c27"
+            ]
+          },
+          {
+            "claim": "Tests error because column \"amount\" is missing from stg_payments; the candidate column offered is amount_usd",
+            "evidence_ids": [
+              "check:not_null_stg_payments_amount.4739fb3aea@7e2a3c27",
+              "check:assert_payments_match_orders@7e2a3c27"
+            ]
+          },
+          {
+            "claim": "fct_orders was skipped with an upstream failure, so the mart has 0 of the 440 raw orders and is stale",
+            "evidence_ids": [
+              "log:250",
+              "check:reconciliation:raw.orders->marts.fct_orders@7e2a3c27",
+              "check:freshness:marts.fct_orders@7e2a3c27"
+            ]
+          },
+          {
+            "claim": "stg_payments is the only changed model; its diff renames amount to amount_usd",
+            "evidence_ids": [
+              "model:changes",
+              "model:stg_payments"
+            ]
+          },
+          {
+            "claim": "Upstream payments file is unchanged: header includes amount, no missing or extra columns, no parse problems; ingest config at defaults",
+            "evidence_ids": [
+              "landing:payments@2026-10-01",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "Runbook says to revert the model that changed",
+            "evidence_ids": [
+              "runbook:failed_jobs#model-errors-after-a-deploy",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.93,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream column rename (apply_column_mapping): ruled out because the landing header still has `amount` and matches the contract",
+          "Missing or partial delivery: ruled out because partition_present and row_count_trend checks pass for all raw tables",
+          "Intentional business-logic rename (escalate to analytics_engineering): possible, but nothing indicates the change was planned, and downstream code and tests still expect `amount`, so reverting is the safe fix",
+          "Transient failure (rerun_only): ruled out because the error is deterministic and comes from the model code"
+        ]
+      },
+      "proposal": {
+        "ts": 1792093138.9757144,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "stg_payments"
+            }
+          }
+        ],
+        "rationale": "An undeployed edit to stg_payments renamed `amount` to `amount_usd`. The landing payments file still has the contract column `amount`, and ingest config is at defaults, so nothing changed upstream. Downstream fct_orders and the tests that reference stg_payments.amount fail with a Binder Error, and fct_orders is skipped, so the 2026-10-01 partition never reaches the mart. Reverting stg_payments to the deployed version brings back `amount` and lets fct_orders build.",
+        "evidence_ids": [
+          "model:changes",
+          "model:stg_payments",
+          "landing:payments@2026-10-01",
+          "config:ingest",
+          "check:not_null_stg_payments_amount.4739fb3aea@7e2a3c27",
+          "check:assert_payments_match_orders@7e2a3c27",
+          "log:250",
+          "check:reconciliation:raw.orders->marts.fct_orders@7e2a3c27",
+          "runbook:failed_jobs#model-errors-after-a-deploy",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "reverted models/staging/stg_payments.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 46.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.93,
+      "seconds": 46.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 12,
+    "cited_ids_total": 12,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 9,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 116662,
+        "output_tokens": 2331,
+        "api_equiv_usd": 0.245
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.245
+  }
+}

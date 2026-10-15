@@ -1,0 +1,183 @@
+{
+  "incident": "R3",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\R3-20261015-161106",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "eafa5de7-555d-4f8f-a604-be2cb0e895d8",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 failed row_count_trend on raw.orders, raw.order_items and raw.payments, which fell to 40-45% of their trailing medians. The upstream export for that day was filtered to channel=web only: app and marketplace rows are missing all day, and the files are otherwise well-formed. I proposed requesting redelivery of orders, order_items and payments for 2026-10-01, then rerunning the partition.",
+        "root_cause": {
+          "family": "row_count_drop",
+          "cause": "filtered_export",
+          "table": "orders",
+          "column": "channel",
+          "model": null,
+          "explanation": "The 2026-10-01 landing export contains only channel=web (205 orders). App (about 130-179 per day) and marketplace (about 62-95 per day) are absent across the whole day, so this is a filter and not a time cutoff. The file has the contract header and a complete last row, and payments and order_items are consistent with the filtered orders. There are no schema, ingest-config or dbt model changes."
+        },
+        "evidence": [
+          {
+            "claim": "The failure is silent. Ingest and transform succeeded, and only the quality_checks step failed, on three row_count_trend checks at 40-45% of the trailing median.",
+            "evidence_ids": [
+              "run:eafa5de7",
+              "check:row_count_trend:raw.orders@eafa5de7",
+              "check:row_count_trend:raw.order_items@eafa5de7",
+              "check:row_count_trend:raw.payments@eafa5de7"
+            ]
+          },
+          {
+            "claim": "Partition_present, reconciliation and the dbt tests pass. No dbt models changed and the ingest config is at defaults, so this is not a model or schema problem.",
+            "evidence_ids": [
+              "check:partition_present:raw.orders@live",
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "model:changes",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The orders file for 10-01 is well-formed but holds only channel=web. App and marketplace are completely missing, while time coverage runs 00:02 to 23:56. This rules out a truncated file.",
+            "evidence_ids": [
+              "worker:1",
+              "landing:orders@2026-10-01",
+              "sql:d3044aec"
+            ]
+          },
+          {
+            "claim": "The drop is a missing category and not a status gap. All four statuses are present in the web rows, and web volume is roughly normal.",
+            "evidence_ids": [
+              "worker:2",
+              "sql:fd9682d0",
+              "chart:orders_by_channel"
+            ]
+          },
+          {
+            "claim": "The runbooks map a filtered or partial export to redelivery of orders, order_items and payments together, followed by a rerun.",
+            "evidence_ids": [
+              "worker:3",
+              "runbook:missing_data#remedy-for-one-off-export-glitches",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.8,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Partial or truncated export: ruled out because the file's time range is complete and its last row is intact.",
+          "Schema change or ingest mapping issue: ruled out because the header matches the contract and the ingest config is default.",
+          "Bad dbt model deploy: ruled out because no models differ from the deployed version and the drop is already in raw.",
+          "Legitimate volume drop: unlikely, because two whole channels went to zero while web is normal. The runbook has no guidance on this case.",
+          "Escalate to upstream_app_team: reserved for a filter that persists after redelivery. If the redelivered file is still web-only, the filter is deliberate and upstream must be asked about it.",
+          "rerun_only: would not help, because the landing file itself is missing the data."
+        ]
+      },
+      "proposal": {
+        "ts": 1792095136.9398715,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 export was filtered upstream to channel=web only. App and marketplace rows are missing across the full day, and the file is well-formed with the contract header. Orders, order_items and payments all dropped by about 55-60%. Earlier days were normal, so this looks like a one-off export fault. The runbook remedy is to redeliver the related tables together and then rerun the partition.",
+        "evidence_ids": [
+          "check:row_count_trend:raw.orders@eafa5de7",
+          "check:row_count_trend:raw.order_items@eafa5de7",
+          "check:row_count_trend:raw.payments@eafa5de7",
+          "worker:1",
+          "worker:2",
+          "worker:3",
+          "sql:d3044aec",
+          "sql:fd9682d0",
+          "runbook:missing_data#remedy-for-one-off-export-glitches"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 66.3,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.8,
+      "seconds": 66.3
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 17,
+    "cited_ids_total": 17,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 24,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 72658,
+        "output_tokens": 2530,
+        "api_equiv_usd": 0.1204
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 71612,
+        "output_tokens": 4906,
+        "api_equiv_usd": 0.1436
+      }
+    },
+    "api_equiv_usd": 0.264
+  }
+}

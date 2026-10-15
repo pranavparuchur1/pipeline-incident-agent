@@ -1,0 +1,190 @@
+{
+  "incident": "D4",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\D4-20261015-163127",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "13c2f931-eaf5-4ec1-a545-029317afc656",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (13c2f931) failed at quality_checks because upstream sent a payments file with every row twice: 834 rows, but only 417 distinct payment_ids, and the copies are identical. Ingest loaded both copies. That failed the unique and payments-match-orders tests, which caused fct_orders to be skipped (0 rows for the day, stale). Proposed fix: deduplicate payments on payment_id at ingest. This setting stays on for future loads, so we should ask upstream to fix their export.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "duplicate_rows_in_file",
+          "table": "payments",
+          "column": "payment_id",
+          "model": "stg_payments",
+          "explanation": "The upstream payments export for 2026-10-01 has each payment exactly twice with identical values (834 rows, 417 distinct). The IDs don't overlap with the 2026-09-30 file, so these are not stale rows resent. The duplicates broke unique_stg_payments_payment_id and assert_payments_match_orders, and the fct_orders build and tests were skipped as a result. No dbt model changes and no schema or config changes were involved."
+        },
+        "evidence": [
+          {
+            "claim": "The run failed at quality_checks with failing payments uniqueness, payments-match-orders, row-count-trend and skipped fct_orders tests",
+            "evidence_ids": [
+              "run:13c2f931",
+              "log:248",
+              "log:249",
+              "log:258",
+              "check:unique_stg_payments_payment_id.3744510712@13c2f931",
+              "check:assert_payments_match_orders@13c2f931",
+              "check:not_null_fct_orders_order_id.4e687af8d0@13c2f931"
+            ]
+          },
+          {
+            "claim": "raw.payments loaded 834 rows from the landing file, against a median of 439",
+            "evidence_ids": [
+              "log:246",
+              "check:row_count_trend:raw.payments@live"
+            ]
+          },
+          {
+            "claim": "The landing file has every payment exactly twice with identical values, and its IDs don't overlap with the prior day's file",
+            "evidence_ids": [
+              "worker:1",
+              "sql:869c80ea",
+              "landing:payments@2026-10-01",
+              "landing:payments@2026-09-30"
+            ]
+          },
+          {
+            "claim": "fct_orders has 0 rows for the day, while raw has 440 orders",
+            "evidence_ids": [
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:freshness:marts.fct_orders@live"
+            ]
+          },
+          {
+            "claim": "No models changed and the ingest config is default, so model changes and config changes are ruled out",
+            "evidence_ids": [
+              "model:changes",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "For in-file duplicates with identical copies, the runbook prescribes deduplicate_on_ingest on the primary key",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:duplicates#remedy",
+              "runbook:duplicates#how-to-distinguish",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "stale_rows_resent: ruled out because the 2026-10-01 IDs don't overlap with 2026-09-30 and the duplicate keys are inside this one file",
+          "bad_model_deploy: ruled out because no models changed",
+          "request_upstream_redelivery: allowed as an alternative, but dedupe is preferred because the copies are identical",
+          "schema change: ruled out because the header matches the contract"
+        ]
+      },
+      "proposal": {
+        "ts": 1792096342.7147255,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "deduplicate_on_ingest",
+            "params": {
+              "table": "payments",
+              "key": "payment_id"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 payments landing file contains every payment exactly twice (834 rows, 417 distinct payment_ids, 417 distinct full rows, all copies identical). The IDs do not overlap with 2026-09-30, so these are in-file duplicates (runbook Cause A), not stale rows resent. The runbook's preferred remedy is deduplicate_on_ingest on the primary key payment_id, which is safe because the copies are identical. This removes the failing unique and payments-match-orders tests, and that unblocks fct_orders, which was skipped. No model or schema changes were involved.",
+        "evidence_ids": [
+          "worker:1",
+          "worker:2",
+          "sql:869c80ea",
+          "landing:payments@2026-10-01",
+          "landing:payments@2026-09-30",
+          "log:246",
+          "log:249",
+          "check:unique_stg_payments_payment_id.3744510712@13c2f931",
+          "check:row_count_trend:raw.payments@13c2f931",
+          "runbook:duplicates#remedy",
+          "runbook:duplicates#how-to-distinguish",
+          "model:changes",
+          "config:ingest"
+        ]
+      },
+      "applied": [
+        "ingest now keeps one row per payment_id when loading raw.payments"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 56.4,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 56.4
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 21,
+    "cited_ids_total": 21,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 14,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 70886,
+        "output_tokens": 2571,
+        "api_equiv_usd": 0.2342
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 26217,
+        "output_tokens": 2758,
+        "api_equiv_usd": 0.0683
+      }
+    },
+    "api_equiv_usd": 0.3025
+  }
+}

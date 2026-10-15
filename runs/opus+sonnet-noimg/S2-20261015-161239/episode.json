@@ -1,0 +1,195 @@
+{
+  "incident": "S2",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\S2-20261015-161239",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "1dd6a60d-aa09-4b14-90a8-1696ee5e1128",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (1dd6a60d) failed at ingest because the upstream customers export renamed `country` to `country_code`. The values are still 2-letter ISO codes, so it looks like a plain rename, but only 4 of 30 rows were checked. The other landing files match their contracts and only failed to load because ingest stopped. Proposed fix: one ingest mapping, customers.country_code \u2192 country.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_renamed",
+          "table": "customers",
+          "column": "country",
+          "model": null,
+          "explanation": "The customers.csv delivered for 2026-10-01 has `country_code` instead of the contract column `country`. Nothing else in the file changed (same other columns, same order, 30 rows), and the values keep the same 2-letter ISO format seen on 2026-09-30. The ingest config is empty and matches columns by name, so the schema check failed. That stopped the whole ingest step, which is why raw is empty for all tables on 10-01."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed with a schema mismatch on raw.customers: missing 'country', unexpected 'country_code'",
+            "evidence_ids": [
+              "log:243",
+              "run:1dd6a60d"
+            ]
+          },
+          {
+            "claim": "The 10-01 customers header swaps country for country_code; the 09-30 file and the contract use country; row count and other columns are unchanged",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "landing:customers@2026-09-30",
+              "schema:raw.customers",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "Values use the same 2-letter ISO format before and after (AU/US/GB on 09-30, US on 10-01), so the meaning looks unchanged",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "landing:customers@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "No ingest mapping is configured",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The other 10-01 landing files match their contracts; raw is empty for them only because ingest failed",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01",
+              "check:partition_present:raw.orders@live",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "No dbt models differ from the deployed version",
+            "evidence_ids": [
+              "model:changes"
+            ]
+          },
+          {
+            "claim": "The runbook's fix for a same-meaning rename is apply_column_mapping; redelivery is not the fix for a rename",
+            "evidence_ids": [
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: rejected. The file is complete and well-formed, and the rename looks deliberate and lasting, so a re-export would likely have the same header.",
+          "escalate_to_owner(upstream_app_team) because the meaning changed: rejected. The value format is the same ISO 2-letter codes as before (only a small sample was checked).",
+          "ignore_extra_columns(country_code): rejected. It would leave the contract column country empty or missing.",
+          "revert_model_change: not applicable. No models changed.",
+          "rerun_only: would fail again with the same schema mismatch."
+        ]
+      },
+      "proposal": {
+        "ts": 1792095212.4301727,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "apply_column_mapping",
+            "params": {
+              "table": "customers",
+              "source_column": "country_code",
+              "target_column": "country"
+            }
+          }
+        ],
+        "rationale": "Upstream renamed customers.country to country_code in the 2026-10-01 export. Everything else in the file is unchanged: same columns otherwise, same order, 30 rows. The values use the same 2-letter ISO format as before (09-30 had AU/US/GB; 10-01 has US). The runbook says a same-meaning rename should be adapted at ingest with apply_column_mapping. No dbt models changed. The other tables' landing files match their contracts and are only empty in raw because the ingest step failed.",
+        "evidence_ids": [
+          "log:243",
+          "run:1dd6a60d",
+          "landing:customers@2026-10-01",
+          "landing:customers@2026-09-30",
+          "schema:raw.customers",
+          "config:ingest",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:remediation_policy#choosing-quickly",
+          "model:changes",
+          "worker:1",
+          "worker:2"
+        ]
+      },
+      "applied": [
+        "ingest now reads raw.customers.country from upstream column 'country_code'"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 59.0,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 59.0
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 19,
+    "cited_ids_total": 19,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 18,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 58439,
+        "output_tokens": 2950,
+        "api_equiv_usd": 0.1456
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 34491,
+        "output_tokens": 2967,
+        "api_equiv_usd": 0.1022
+      }
+    },
+    "api_equiv_usd": 0.2478
+  }
+}

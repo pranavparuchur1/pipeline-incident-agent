@@ -1,0 +1,177 @@
+{
+  "incident": "D3",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\D3-20261015-155221",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "f3926ecb-dd93-41b2-8e1c-e1d8227ff191",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The 2026-10-01 orders export re-sent the entire 09-30 file (461 stale rows, order_ids 12941-13401) along with the 440 new orders, giving 901 rows. The stale keys duplicate the 09-30 partition and fail unique_stg_orders_order_id. The failure then cascades to the marts, so fct_orders and dim_customers checks are skipped. The proposed fix is to request upstream redelivery of orders for 10-01.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "stale_rows_resent",
+          "table": "raw.orders",
+          "column": "order_id",
+          "model": null,
+          "explanation": "The 10-01 orders landing file has a clean schema but includes the full 09-30 file re-sent (about 461 rows; the last row, order 13401, is identical in both files) plus about 440 new orders. Staging does no dedupe, so the duplicate keys fail unique_stg_orders_order_id and assert_order_totals_match_items (461 rows each). The downstream mart tests were skipped and fct_orders has no 10-01 rows. No dbt models changed and the ingest config is empty. The per-row overlap was inferred from file boundaries and counts, not checked row by row."
+        },
+        "evidence": [
+          {
+            "claim": "The failing checks are the unique and totals tests on stg_orders (461 failing rows each). The mart tests were skipped, and fct_orders has 0 rows for 10-01.",
+            "evidence_ids": [
+              "run:f3926ecb",
+              "check:unique_stg_orders_order_id.e3b841c71a@f3926ecb",
+              "check:assert_order_totals_match_items@f3926ecb",
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "log:257"
+            ]
+          },
+          {
+            "claim": "raw.orders has 901 rows against a trailing median of 461. order_items and payments are in their normal ranges.",
+            "evidence_ids": [
+              "check:row_count_trend:raw.orders@live",
+              "check:row_count_trend:raw.order_items@live",
+              "check:row_count_trend:raw.payments@live"
+            ]
+          },
+          {
+            "claim": "The 10-01 file ends with 09-30 order 13401, identical to the last row of the 09-30 file. This fits a re-send of the whole 09-30 file (461 + 440 = 901). The file schema is clean.",
+            "evidence_ids": [
+              "worker:1",
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30"
+            ]
+          },
+          {
+            "claim": "No dbt model changed, and the ingest config is empty, so this is not a bad model deploy or a schema change.",
+            "evidence_ids": [
+              "model:changes",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says stale rows re-sent from a previous day need redelivery, and dedupe-on-ingest is the wrong fix for that case.",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:duplicates#remedy"
+            ]
+          }
+        ],
+        "confidence": 0.8,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "deduplicate_on_ingest on order_id: the runbook says this is wrong for stale rows from another day, and it would also persist for all future loads",
+          "revert_model_change: no models differ from the deployed version",
+          "apply_column_mapping / ignore_extra_columns / set_column_parser: the schema is clean with no renamed, added or reformatted columns",
+          "rerun_only: the landing file itself is bad, so a rerun would fail the same way",
+          "escalate_to_owner (upstream_app_team): kept as the fallback if redelivery returns the same duplicates"
+        ]
+      },
+      "proposal": {
+        "ts": 1792094025.1248233,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 orders file re-sent the whole 09-30 file (order_ids 12941-13401, 461 rows) alongside the 440 new orders. Those stale rows collide with the existing 09-30 partition, which is why unique_stg_orders_order_id fails with 461 rows. The schema is clean and no models changed. The duplicate-keys runbook says dedupe-on-ingest is wrong for stale rows re-sent from a previous day and tells us to request redelivery. order_items and payments counts look normal and their checks pass, so only orders needs re-export.",
+        "evidence_ids": [
+          "worker:1",
+          "worker:2",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "check:unique_stg_orders_order_id.e3b841c71a@f3926ecb",
+          "check:row_count_trend:raw.orders@live",
+          "model:changes",
+          "runbook:duplicates#remedy"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 60.9,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.8,
+      "seconds": 60.9
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 15,
+    "cited_ids_total": 15,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 14,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 77200,
+        "output_tokens": 2514,
+        "api_equiv_usd": 0.1233
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 31429,
+        "output_tokens": 3668,
+        "api_equiv_usd": 0.0848
+      }
+    },
+    "api_equiv_usd": 0.2081
+  }
+}

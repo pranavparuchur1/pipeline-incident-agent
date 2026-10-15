@@ -1,0 +1,177 @@
+{
+  "incident": "R2",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\R2-20261015-155909",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "6ab49bdf-643f-462e-803f-f8c9342e304a",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The 2026-10-01 export from upstream is missing every web-channel order. The orders file has 235 rows against a median of 461, and order_items and payments are also down about 50%. The files are well-formed and not truncated, so this looks like a one-off filtered export. I've proposed redelivering orders, order_items and payments for 2026-10-01, then a rerun.",
+        "root_cause": {
+          "family": "row_count_drop",
+          "cause": "filtered_export",
+          "table": "raw.orders",
+          "column": "channel",
+          "model": null,
+          "explanation": "The orders landing file for 2026-10-01 has 0 rows with channel='web', against about 240 per day normally (242 on 09-30). App (151) and marketplace (84) are normal and sum to 235. Every hour 0-23 and all four statuses are present at about half volume, so the file is not cut off at the end. order_items (464) and payments (219) dropped by the same ~50%. The ingest config is default and no dbt models changed, so the pipeline is not the cause. The row_count_trend checks caught it."
+        },
+        "evidence": [
+          {
+            "claim": "The quality_checks step failed on row_count_trend for raw.orders, raw.order_items and raw.payments, each at about 50% of the trailing median. Ingest and transform succeeded.",
+            "evidence_ids": [
+              "run:6ab49bdf",
+              "log:249",
+              "log:250",
+              "log:251",
+              "check:row_count_trend:raw.orders@6ab49bdf"
+            ]
+          },
+          {
+            "claim": "The orders file is complete and well-formed but contains no web orders. App and marketplace are normal, and hours and statuses are all present, so the file was not truncated.",
+            "evidence_ids": [
+              "worker:1",
+              "worker:3",
+              "chart:orders_by_channel",
+              "sql:d85a68c9",
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "No dbt model changed and the ingest config is default, so a pipeline change is ruled out.",
+            "evidence_ids": [
+              "model:changes",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says to redeliver all affected tables together for a filtered export, then rerun.",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:missing_data#remedy-for-one-off-export-glitches"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Partial or truncated export: ruled out because all 24 hours are present and the file is well-formed.",
+          "Genuine traffic drop: unlikely, because web falling to exactly 0 while app and marketplace stay normal points to a filtered export. The runbook has no explicit test for this, so my confidence is not higher.",
+          "Schema or dbt model change: ruled out because there is no model diff and the ingest config is default.",
+          "Loosening the check threshold or rerun_only: the runbook forbids loosening the threshold, and a plain rerun would not bring back the missing data.",
+          "Escalating to upstream_app_team: possible if redelivery fails again, but a redelivery request is the safe first step."
+        ]
+      },
+      "proposal": {
+        "ts": 1792094457.4702983,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 export has no web-channel orders. The file is well-formed and not truncated. All hours and statuses are present at about half volume, and app and marketplace are normal. This is a one-off filtered export. Redeliver orders, order_items and payments together, as the runbook says, then rerun. The ingest config is default and no dbt models changed, so the pipeline isn't at fault.",
+        "evidence_ids": [
+          "check:row_count_trend:raw.orders@6ab49bdf",
+          "log:249",
+          "log:250",
+          "log:251",
+          "worker:1",
+          "worker:2",
+          "worker:3",
+          "chart:orders_by_channel",
+          "sql:d85a68c9",
+          "model:changes",
+          "config:ingest",
+          "runbook:missing_data#remedy-for-one-off-export-glitches"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 86.5,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 86.5
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 14,
+    "cited_ids_total": 14,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 26,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 73704,
+        "output_tokens": 2316,
+        "api_equiv_usd": 0.1181
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 60084,
+        "output_tokens": 4803,
+        "api_equiv_usd": 0.1345
+      }
+    },
+    "api_equiv_usd": 0.2526
+  }
+}

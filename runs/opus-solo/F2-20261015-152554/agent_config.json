@@ -1,0 +1,15 @@
+{
+  "name": "opus-solo",
+  "master_model": "opus",
+  "worker_model": "sonnet",
+  "use_workers": false,
+  "allow_images": true,
+  "master_max_turns": 40,
+  "worker_max_turns": 12,
+  "master_effort": null,
+  "worker_effort": null,
+  "master_timeout_s": 1500,
+  "worker_timeout_s": 420,
+  "disabled_tools": [],
+  "master_tools": "all"
+}

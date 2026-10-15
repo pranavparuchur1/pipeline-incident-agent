@@ -1,0 +1,179 @@
+{
+  "incident": "D4",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\D4-20261015-160618",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "f3e52cda-2ada-42fb-84f3-fe48495d6af6",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The 2026-10-01 payments landing file has every payment_id twice with identical content (834 rows, 417 distinct). The duplicates fail the unique test, the payments/orders assertion and the row-count trend. fct_orders is empty and its tests were skipped. Proposed fix: deduplicate_on_ingest on payments.payment_id. Upstream should still be told about the doubled export.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "duplicate_rows_in_file",
+          "table": "raw.payments",
+          "column": "payment_id",
+          "model": null,
+          "explanation": "The payments export for 2026-10-01 contains each payment_id exactly twice with identical content. All rows belong to 2026-10-01 orders, so these are not stale rows from an earlier day. Staging does not dedupe, so the duplicates flow downstream. Why fct_orders is empty was not directly established. The likely cause is that failing upstream tests or models skipped it. I expect the rerun to confirm this."
+        },
+        "evidence": [
+          {
+            "claim": "raw.payments 2026-10-01 has 834 rows, 417 distinct payment_ids, every one doubled identically",
+            "evidence_ids": [
+              "worker:1",
+              "sql:a5eda59e",
+              "landing:payments@2026-10-01"
+            ]
+          },
+          {
+            "claim": "Extra rows are not stale or earlier-day; orders landing is normal and the header matches the contract",
+            "evidence_ids": [
+              "sql:fdc728c3",
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "Failing checks are consistent with duplicates: unique test, row-count trend at 190%, payments/orders assertion",
+            "evidence_ids": [
+              "check:unique_stg_payments_payment_id.3744510712@f3e52cda",
+              "check:row_count_trend:raw.payments@f3e52cda",
+              "check:assert_payments_match_orders@f3e52cda"
+            ]
+          },
+          {
+            "claim": "No dbt model changed and ingest config is default, so a model revert or column mapping does not apply",
+            "evidence_ids": [
+              "model:changes",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says identical in-file copies are fixed with deduplicate_on_ingest on the primary key",
+            "evidence_ids": [
+              "runbook:duplicates#remedy",
+              "worker:2"
+            ]
+          },
+          {
+            "claim": "fct_orders has 0 rows for 2026-10-01 and its unique and not_null tests were skipped",
+            "evidence_ids": [
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:unique_fct_orders_order_id.523ddb6ce5@f3e52cda"
+            ]
+          }
+        ],
+        "confidence": 0.8,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: the runbook reserves it for stale rows from an earlier day, and these are identical in-file copies",
+          "revert_model_change: no models differ from the deployed version",
+          "apply_column_mapping or ignore_extra_columns: the header matches the contract",
+          "escalate_to_owner (analytics_engineering): the fct_orders emptiness is unexplained, but raw orders are unique and no model changed, so the cause is likely upstream of the mart",
+          "rerun_only: the duplicates are in the landing file, so a rerun would fail again"
+        ]
+      },
+      "proposal": {
+        "ts": 1792094871.152853,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "deduplicate_on_ingest",
+            "params": {
+              "table": "payments",
+              "key": "payment_id"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 payments file has every payment_id exactly twice with identical content (Cause A: exact duplicates within one file, not stale rows). Deduping on payment_id restores 417 rows, fixes the unique test, row-count trend and payments/orders assertion, and unblocks fct_orders.",
+        "evidence_ids": [
+          "worker:1",
+          "worker:2",
+          "sql:a5eda59e",
+          "sql:fdc728c3",
+          "check:unique_stg_payments_payment_id.3744510712@f3e52cda",
+          "check:row_count_trend:raw.payments@f3e52cda",
+          "landing:payments@2026-10-01",
+          "runbook:duplicates#remedy"
+        ]
+      },
+      "applied": [
+        "ingest now keeps one row per payment_id when loading raw.payments"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 69.7,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.8,
+      "seconds": 69.7
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 14,
+    "cited_ids_total": 14,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 22,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 44830,
+        "output_tokens": 2204,
+        "api_equiv_usd": 0.1024
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 74519,
+        "output_tokens": 4150,
+        "api_equiv_usd": 0.1141
+      }
+    },
+    "api_equiv_usd": 0.2165
+  }
+}

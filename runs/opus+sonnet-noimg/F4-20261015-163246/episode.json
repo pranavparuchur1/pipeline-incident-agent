@@ -1,0 +1,182 @@
+{
+  "incident": "F4",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\F4-20261015-163246",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "5cb066f9-5b69-435f-9508-3c5d08c774a5",
+    "failed_step": "transform",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run 5cb066f9 for 2026-10-01 failed at `transform`. An undeployed edit to dim_customers changed `c.country` to `c.country_iso`, a column that stg_customers doesn't have, so dbt failed with a Binder Error. Upstream data didn't change: the customers file header still matches the contract and the previous day. The proposed fix reverts dim_customers to the deployed version; it hasn't been applied or tested yet.",
+        "root_cause": {
+          "family": "failed_job",
+          "cause": "bad_model_deploy",
+          "table": null,
+          "column": "country",
+          "model": "dim_customers",
+          "explanation": "dim_customers differs from the deployed version by one line: the final select reads c.country_iso instead of c.country. stg_customers (unchanged) and raw.customers only have `country`, so the model fails to bind and the dbt build fails (1 model failed, 2 skipped). Ingest succeeded and the 2026-10-01 landing file has the same shape as 2026-09-30, which rules out upstream schema drift."
+        },
+        "evidence": [
+          {
+            "claim": "The transform step failed because dim_customers hit a Binder Error on c.country_iso; ingest succeeded.",
+            "evidence_ids": [
+              "run:5cb066f9",
+              "log:248",
+              "log:251"
+            ]
+          },
+          {
+            "claim": "dim_customers is the only changed model, and its diff replaces c.country with c.country_iso.",
+            "evidence_ids": [
+              "model:changes",
+              "model:dim_customers",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "stg_customers is unchanged and exposes `country`, not `country_iso`.",
+            "evidence_ids": [
+              "model:stg_customers",
+              "schema:staging.stg_customers",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The upstream customers file for 2026-10-01 matches the contract and the 2026-09-30 file, and the ingest config is at defaults, so there was no schema drift.",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "landing:customers@2026-09-30",
+              "schema:raw.customers",
+              "config:ingest",
+              "worker:2"
+            ]
+          },
+          {
+            "claim": "The runbook says a model error after a deploy should be fixed by reverting the changed model.",
+            "evidence_ids": [
+              "runbook:failed_jobs#model-errors-after-a-deploy",
+              "runbook:remediation_policy#principles",
+              "worker:3"
+            ]
+          }
+        ],
+        "confidence": 0.93,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream renamed country to country_iso (apply_column_mapping): rejected because the landing header is unchanged and still uses `country`.",
+          "Intentional business-logic change, so escalate to analytics_engineering: unlikely, because the edit points at a column that doesn't exist anywhere and can never build.",
+          "Transient failure (rerun_only): rejected because the error is a deterministic binder error."
+        ]
+      },
+      "proposal": {
+        "ts": 1792096443.9623861,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "dim_customers"
+            }
+          }
+        ],
+        "rationale": "An undeployed edit to dim_customers changed `c.country` to `c.country_iso`. stg_customers has no country_iso column, so dbt fails with a Binder Error. The upstream customers file and the raw contract have not changed: the column is still `country`, ingest succeeded and the ingest config is at defaults. That makes this a bad model change, not schema drift. The runbook says to revert the changed model.",
+        "evidence_ids": [
+          "log:248",
+          "log:251",
+          "run:5cb066f9",
+          "model:changes",
+          "model:dim_customers",
+          "model:stg_customers",
+          "schema:staging.stg_customers",
+          "landing:customers@2026-10-01",
+          "landing:customers@2026-09-30",
+          "schema:raw.customers",
+          "config:ingest",
+          "runbook:failed_jobs#model-errors-after-a-deploy",
+          "runbook:remediation_policy#principles",
+          "worker:1",
+          "worker:2",
+          "worker:3"
+        ]
+      },
+      "applied": [
+        "reverted models/marts/dim_customers.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 63.1,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.93,
+      "seconds": 63.1
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 17,
+    "cited_ids_total": 17,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 17,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 35942,
+        "output_tokens": 2251,
+        "api_equiv_usd": 0.1269
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 29471,
+        "output_tokens": 2938,
+        "api_equiv_usd": 0.0869
+      }
+    },
+    "api_equiv_usd": 0.2138
+  }
+}

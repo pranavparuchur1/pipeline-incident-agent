@@ -1,0 +1,162 @@
+{
+  "incident": "M3",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\M3-20261015-154901",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "b38ea47f-7aa3-4d1c-906e-779577d7a034",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly ingest for 2026-10-01 failed because the order_items landing file (landing/order_items/dt=2026-10-01/order_items.csv) was never delivered. The other tables landed normally and the path and naming are unchanged, so this looks like a one-off upstream export gap. I proposed redelivery of orders, order_items and payments for 2026-10-01, followed by a rerun.",
+        "root_cause": {
+          "family": "missing_partition",
+          "cause": "file_missing",
+          "table": "order_items",
+          "column": null,
+          "model": null,
+          "explanation": "The order_items CSV for dt=2026-10-01 is absent, although the partition directory exists. customers, orders and payments landed with clean headers and normal volumes. order_items landed fine on 09-30 under the same path and naming. The ingest config is at defaults and no model changed. This points to a one-off delivery gap, not a schema or path change."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed because the order_items landing file is missing",
+            "evidence_ids": [
+              "run:b38ea47f",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "Only order_items is missing for 10-01. Other tables are normal, and order_items was fine on 09-30 with the same path.",
+            "evidence_ids": [
+              "landing:order_items@2026-10-01",
+              "landing:order_items@2026-09-30",
+              "landing:orders@2026-10-01",
+              "landing:payments@2026-10-01",
+              "landing:customers@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The runbook prescribes redelivery of orders, order_items and payments together for a missing file",
+            "evidence_ids": [
+              "runbook:missing_data#remedy-for-one-off-export-glitches",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.8,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Path or naming change by upstream: unlikely, since the path is unchanged and the other tables are fine. The worker could not list the contents of the 10-01 directory, so this is not fully ruled out.",
+          "Ingest config mapping problem: config is at defaults and the error is a missing file, not a column issue.",
+          "Bad dbt model deploy: the failure is at ingest, before any transform ran.",
+          "rerun_only: would fail again because the file is still absent.",
+          "Escalate to upstream_app_team: reserve for the case where redelivery returns the same missing file."
+        ]
+      },
+      "proposal": {
+        "ts": 1792093788.0775971,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders",
+                "order_items",
+                "payments"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "order_items landing file for 2026-10-01 is missing while the other tables and prior days are fine and path/naming is unchanged: a one-off delivery gap. Runbook says to redeliver all related tables together, then rerun.",
+        "evidence_ids": [
+          "log:243",
+          "run:b38ea47f",
+          "landing:order_items@2026-10-01",
+          "landing:order_items@2026-09-30",
+          "landing:orders@2026-10-01",
+          "runbook:missing_data#remedy-for-one-off-export-glitches",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows), order_items (840 rows), payments (417 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 44.7,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.8,
+      "seconds": 44.7
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 9,
+    "cited_ids_total": 9,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 16,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 30116,
+        "output_tokens": 1686,
+        "api_equiv_usd": 0.0464
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 23543,
+        "output_tokens": 2414,
+        "api_equiv_usd": 0.0752
+      }
+    },
+    "api_equiv_usd": 0.1216
+  }
+}

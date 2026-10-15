@@ -1,0 +1,184 @@
+{
+  "incident": "S4",
+  "config": "opus+sonnet-noimg",
+  "trace_dir": "runs\\opus+sonnet-noimg\\S4-20261015-161518",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "6301ea71-4971-4e2f-9c5e-cb6406ed0430",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (run 6301ea71) failed at ingest because upstream added a new column, `coupon_code`, to orders.csv that isn't in the raw.orders contract. Nothing else changed: all 7 contract columns are present with the same names and formats, and row counts look normal. I've proposed setting ingest to ignore `coupon_code` for orders. Nothing has been applied or rerun yet.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_added",
+          "table": "orders",
+          "column": "coupon_code",
+          "model": null,
+          "explanation": "Starting 2026-10-01, upstream's orders.csv has an extra trailing column, coupon_code. The strict header check at ingest rejects it as an unexpected column. No contract columns are missing or renamed and the value formats are unchanged, so the column is purely additive."
+        },
+        "evidence": [
+          {
+            "claim": "Ingest failed for 2026-10-01 with a schema mismatch on raw.orders: no missing columns, and coupon_code reported as unexpected.",
+            "evidence_ids": [
+              "run:6301ea71",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The previous runs (09-29 and 09-30) succeeded.",
+            "evidence_ids": [
+              "run:b62948b3",
+              "run:0122e4b4"
+            ]
+          },
+          {
+            "claim": "The 10-01 orders header has the 7 contract columns in the same order as 09-30, plus coupon_code. Value formats are unchanged and order_ids are contiguous, so the delivery looks complete.",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "No other landing table changed schema on 10-01.",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The ingest config has no mappings or ignore rules yet.",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says to handle a new non-contract column with ignore_extra_columns and then rerun.",
+            "evidence_ids": [
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Column rename (apply_column_mapping): ruled out because no contract column is missing.",
+          "Partial or corrupt export (request redelivery): ruled out because the row count is normal and order_ids are contiguous.",
+          "Bad dbt model deploy (revert_model_change): ruled out because the failure is at ingest, before the transform step.",
+          "Just rerunning (rerun_only): wouldn't help, because the header mismatch would fail again the same way.",
+          "Escalating to upstream_app_team: not needed, because the change is additive and doesn't change what any existing metric means."
+        ]
+      },
+      "proposal": {
+        "ts": 1792095362.5238833,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "ignore_extra_columns",
+            "params": {
+              "table": "orders",
+              "columns": [
+                "coupon_code"
+              ]
+            }
+          }
+        ],
+        "rationale": "Upstream added one new non-contract column, coupon_code, to orders.csv starting 2026-10-01. All 7 contract columns are present with the same names, order and value formats, the row count is normal and the order_ids are contiguous. Ingest fails only because of the strict header check. The runbook says to handle a purely additive column with ignore_extra_columns and then rerun.",
+        "evidence_ids": [
+          "log:243",
+          "run:6301ea71",
+          "config:ingest",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "runbook:schema_changes#symptom-to-cause",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "worker:1",
+          "worker:2"
+        ]
+      },
+      "applied": [
+        "ingest now ignores upstream columns ['coupon_code'] on raw.orders"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 48.6,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 48.6
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 14,
+    "cited_ids_total": 14,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 14,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 33074,
+        "output_tokens": 2110,
+        "api_equiv_usd": 0.1135
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 23023,
+        "output_tokens": 2753,
+        "api_equiv_usd": 0.0791
+      }
+    },
+    "api_equiv_usd": 0.1926
+  }
+}
