@@ -1,0 +1,178 @@
+{
+  "incident": "F3",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\F3-20261015-003718",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "09e88b85-0732-4b0f-add0-44b9ead5a35a",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "Nightly run 09e88b85 for 2026-10-01 failed at ingest because the orders.csv landing file was cut off partway through a row. The last line '13666,952,2' has 3 of 7 fields and no trailing newline, and the file has 265 rows against a usual ~461. The header and other tables for that day are fine, so this was an interrupted export, not a schema change. Remediation: re-request orders for 2026-10-01 from upstream, then rerun.",
+        "root_cause": {
+          "family": "failed_job",
+          "cause": "corrupt_landing_file",
+          "table": "orders",
+          "column": null,
+          "model": null,
+          "explanation": "The upstream export of orders for 2026-10-01 was cut off at 14,348 bytes, partway through order_ts on the final row (order 13666). The strict CSV parser rejected that 3-field line, so the ingest step failed and raw.orders, raw.order_items and raw.payments for 10-01 were left empty. The header matches the 7-column contract, so no schema change is involved. order_items and payments reference orders up to 13841, which confirms that orders rows are missing."
+        },
+        "evidence": [
+          {
+            "claim": "The ingest step failed loading raw.orders: CSV error on line 266, expected 7 columns, found 3 ('13666,952,2')",
+            "evidence_ids": [
+              "run:09e88b85",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The header is unchanged and matches the contract. The malformed line is the last line, with no trailing newline (truncated mid-row)",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The file has 265 rows against a median of 461. order_items and payments reference orders up to 13841, so orders rows are missing",
+            "evidence_ids": [
+              "check:row_count_trend:raw.orders@live",
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The ingest config is defaults; there is no mapping or parser problem",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says to request redelivery for corrupt or truncated landing files, and to escalate only if redelivery returns the same broken file",
+            "evidence_ids": [
+              "runbook:failed_jobs#corrupt-or-truncated-landing-files",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Schema change (column dropped): ruled out because the header matches the 7-column contract",
+          "Running with ignore_errors or null_padding to skip the bad row: rejected because it would load a partial day of orders",
+          "Escalating to upstream_app_team: kept as the next step only if the redelivered file is also broken",
+          "Redelivering order_items and payments as well: not needed, since those files are intact and failed to load only because orders failed"
+        ]
+      },
+      "proposal": {
+        "ts": 1792039094.1426692,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The orders.csv file for 2026-10-01 was cut off partway through a row. The header is correct (7 contract columns), but the final line '13666,952,2' stops in the middle of order_ts and has no trailing newline. The file has 265 rows against a median of 461, and order_items and payments reference orders up to 13841, so the export was interrupted. This is a one-off delivery problem, not a schema change. The runbook says to request redelivery of the affected table for that day and then rerun. The other landing files for that day are intact, and their raw partitions are empty only because the ingest step failed on orders.",
+        "evidence_ids": [
+          "run:09e88b85",
+          "log:243",
+          "config:ingest",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "check:row_count_trend:raw.orders@live",
+          "landing:order_items@2026-10-01",
+          "landing:payments@2026-10-01",
+          "runbook:failed_jobs#corrupt-or-truncated-landing-files",
+          "runbook:remediation_policy#choosing-quickly",
+          "worker:1",
+          "worker:2"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 60.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 60.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 13,
+    "cited_ids_total": 13,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 15,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 36256,
+        "output_tokens": 2243,
+        "api_equiv_usd": 0.1265
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 56057,
+        "output_tokens": 4822,
+        "api_equiv_usd": 0.1192
+      }
+    },
+    "api_equiv_usd": 0.2457
+  }
+}

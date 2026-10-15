@@ -1,0 +1,82 @@
+{
+  "incident": "R3",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\R3-20261015-005815",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "9264d0ea-eedf-40da-a4ff-0118c0580f27",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": null,
+      "proposal": null,
+      "applied": [],
+      "apply_error": null,
+      "recovered": false,
+      "verification": null,
+      "seconds": 3.5,
+      "error": "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": false,
+        "cause": false,
+        "target": false,
+        "targets": {
+          "table": false
+        },
+        "correct": false
+      },
+      "decision": null,
+      "recovered": false,
+      "confidence": null,
+      "seconds": 3.5
+    },
+    "final": {
+      "root_cause": {
+        "family": false,
+        "cause": false,
+        "target": false,
+        "targets": {
+          "table": false
+        },
+        "correct": false
+      },
+      "decision": null,
+      "recovered": false
+    },
+    "attempts": 1,
+    "correct_decision": false,
+    "false_remediations": 0,
+    "cited_ids_valid": 0,
+    "cited_ids_total": 0,
+    "errors": [
+      "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
+    ]
+  },
+  "usage": {
+    "llm_calls": 0,
+    "tool_calls": 0,
+    "by_role": {
+      "master": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0
+  }
+}

@@ -1,0 +1,175 @@
+{
+  "incident": "F4",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\F4-20261015-004711",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "d2ba48cc-34fd-490c-8c09-f299911e5e27",
+    "failed_step": "transform",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run d2ba48cc (partition 2026-10-01) failed in transform because the mart dim_customers refers to c.country_iso, a column that doesn't exist. dim_customers is the only model that differs from the deployed version: its `c.country` line was changed to `c.country_iso`. Upstream delivered the same data as before, so the proposed fix is to revert dim_customers to the deployed version and rerun.",
+        "root_cause": {
+          "family": "failed_job",
+          "cause": "bad_model_deploy",
+          "table": null,
+          "column": "country",
+          "model": "dim_customers",
+          "explanation": "An undeployed edit to dim_customers changed c.country to c.country_iso. stg_customers, raw.customers and the landing file only have the column `country`, so dbt fails with a Binder Error. Ingest succeeded, and the 2026-10-01 landing files match the contract and the previous day."
+        },
+        "evidence": [
+          {
+            "claim": "The transform step failed because dbt build hit 1 error: dim_customers raised a Binder Error for the missing column country_iso.",
+            "evidence_ids": [
+              "run:d2ba48cc",
+              "log:248",
+              "log:251"
+            ]
+          },
+          {
+            "claim": "dim_customers is the only changed model. Its diff replaces c.country with c.country_iso, and stg_customers and raw.customers have no country_iso column.",
+            "evidence_ids": [
+              "model:changes",
+              "model:dim_customers",
+              "model:stg_customers",
+              "schema:raw.customers",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The landing customers file for 2026-10-01 matches the contract and the 2026-09-30 file, and the other tables match their contracts. So upstream didn't change anything.",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "landing:customers@2026-09-30",
+              "landing:orders@2026-10-01",
+              "worker:2",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says to revert the model that changed when a model errors after a deploy.",
+            "evidence_ids": [
+              "runbook:failed_jobs#model-errors-after-a-deploy",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:3"
+            ]
+          }
+        ],
+        "confidence": 0.92,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Upstream renamed country to country_iso (fix with apply_column_mapping): ruled out because the landing headers are unchanged and match the contract.",
+          "A staging model was edited: ruled out because stg_customers is unchanged and dim_customers is the only changed model.",
+          "Escalate to analytics_engineering as an intentional logic change: not chosen because the edit points to a column that exists nowhere, so it can't run as written. Restoring the deployed version is the safe step, and a planned country_iso change can be resubmitted together with the upstream columns it needs.",
+          "Transient failure (rerun_only): ruled out because the error is a deterministic binder error."
+        ]
+      },
+      "proposal": {
+        "ts": 1792039686.2899392,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "revert_model_change",
+            "params": {
+              "model": "dim_customers"
+            }
+          }
+        ],
+        "rationale": "The only changed dbt model, dim_customers, replaced c.country with c.country_iso. No column called country_iso exists in stg_customers, raw.customers or the landing file, so the build fails with a Binder Error. The upstream data is unchanged and matches the contract. The runbook says to revert the model that changed.",
+        "evidence_ids": [
+          "log:248",
+          "log:251",
+          "run:d2ba48cc",
+          "model:changes",
+          "model:dim_customers",
+          "model:stg_customers",
+          "schema:raw.customers",
+          "landing:customers@2026-10-01",
+          "landing:customers@2026-09-30",
+          "worker:1",
+          "worker:2",
+          "worker:3",
+          "runbook:failed_jobs#model-errors-after-a-deploy",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "reverted models/marts/dim_customers.sql to the deployed version"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 53.6,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.92,
+      "seconds": 53.6
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "model": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 16,
+    "cited_ids_total": 16,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 19,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 36114,
+        "output_tokens": 2202,
+        "api_equiv_usd": 0.1263
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 37398,
+        "output_tokens": 3161,
+        "api_equiv_usd": 0.0961
+      }
+    },
+    "api_equiv_usd": 0.2224
+  }
+}

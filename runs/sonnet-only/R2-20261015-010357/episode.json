@@ -1,0 +1,82 @@
+{
+  "incident": "R2",
+  "config": "sonnet-only",
+  "trace_dir": "runs\\sonnet-only\\R2-20261015-010357",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "de1f2b29-00a4-4b99-b59b-7fa22f72ad2c",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": null,
+      "proposal": null,
+      "applied": [],
+      "apply_error": null,
+      "recovered": false,
+      "verification": null,
+      "seconds": 5.4,
+      "error": "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": false,
+        "cause": false,
+        "target": false,
+        "targets": {
+          "table": false
+        },
+        "correct": false
+      },
+      "decision": null,
+      "recovered": false,
+      "confidence": null,
+      "seconds": 5.4
+    },
+    "final": {
+      "root_cause": {
+        "family": false,
+        "cause": false,
+        "target": false,
+        "targets": {
+          "table": false
+        },
+        "correct": false
+      },
+      "decision": null,
+      "recovered": false
+    },
+    "attempts": 1,
+    "correct_decision": false,
+    "false_remediations": 0,
+    "cited_ids_valid": 0,
+    "cited_ids_total": 0,
+    "errors": [
+      "CLI returned an error: You've hit your session limit \u00b7 resets 2:10am (America/New_York)"
+    ]
+  },
+  "usage": {
+    "llm_calls": 0,
+    "tool_calls": 0,
+    "by_role": {
+      "master": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "incident": "S2",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\S2-20261015-002651",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "d5e9bc53-6f00-4a5b-b8eb-2c778071749c",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The 2026-10-01 nightly run (d5e9bc53) failed at ingest. Upstream renamed `country` to `country_code` in customers.csv, and ingest rejected the file because its columns no longer matched the raw.customers contract. The values still look like the same 2-letter ISO codes, so my proposed fix maps `country_code` back to `country` at ingest; we should ask the upstream app team to confirm the rename was deliberate.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_renamed",
+          "table": "customers",
+          "column": "country",
+          "model": null,
+          "explanation": "The 2026-10-01 customers.csv header has `country_code` in place of the contract column `country`. All other columns, the column order and the row count (30) are unchanged. Ingest found `country` missing and `country_code` unexpected, so it failed the step. No column mapping existed because the ingest config is empty."
+        },
+        "evidence": [
+          {
+            "claim": "The run failed at ingest with a schema mismatch on raw.customers: column `country` missing, column `country_code` unexpected.",
+            "evidence_ids": [
+              "run:d5e9bc53",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The 10-01 header swaps `country` for `country_code`. Everything else matches the contract, the 09-30 file matches it exactly, and both days have 30 rows.",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "landing:customers@2026-09-30",
+              "schema:raw.customers",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The values look like the same kind of data. The 4 rows the inspector could see on 10-01 are all 'US', and on 09-30 `country` held AU, CA, DE, GB and US. The other 26 rows on 10-01 could not be checked.",
+            "evidence_ids": [
+              "landing:customers@2026-10-01",
+              "sql:c1e88809",
+              "worker:3"
+            ]
+          },
+          {
+            "claim": "No column mapping is configured at ingest.",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says to fix a rename that keeps the same meaning with apply_column_mapping, and to escalate only if the meaning changes.",
+            "evidence_ids": [
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:remediation_policy#choosing-quickly",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.85,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: rejected. The rename looks deliberate and will probably carry on in later files, so a redelivery would likely come back with the same header.",
+          "ignore_extra_columns(country_code): rejected. That would still leave the contract column `country` missing.",
+          "escalate_to_upstream_app_team: rejected for now. The values look like the same ISO codes, so mapping the column is safe. The upstream team should still confirm the rename.",
+          "A dbt model change: ruled out. The failure happens at ingest, before transform runs."
+        ]
+      },
+      "proposal": {
+        "ts": 1792038468.926597,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "apply_column_mapping",
+            "params": {
+              "table": "customers",
+              "source_column": "country_code",
+              "target_column": "country"
+            }
+          }
+        ],
+        "rationale": "Upstream renamed customers.country to country_code in the 2026-10-01 export. The values are the same 2-letter ISO codes the contract already uses, the row count is unchanged at 30, and no other columns changed. The schema_changes runbook says to handle a same-meaning rename by mapping the column at ingest. That fixes ingest for this partition and for later deliveries without needing a redelivery.",
+        "evidence_ids": [
+          "log:243",
+          "run:d5e9bc53",
+          "config:ingest",
+          "landing:customers@2026-10-01",
+          "landing:customers@2026-09-30",
+          "schema:raw.customers",
+          "sql:c1e88809",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:remediation_policy#choosing-quickly",
+          "worker:1",
+          "worker:2",
+          "worker:3"
+        ]
+      },
+      "applied": [
+        "ingest now reads raw.customers.country from upstream column 'country_code'"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 61.5,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.85,
+      "seconds": 61.5
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 13,
+    "cited_ids_total": 13,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 4,
+    "tool_calls": 18,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 47396,
+        "output_tokens": 2385,
+        "api_equiv_usd": 0.1363
+      },
+      "worker": {
+        "calls": 3,
+        "input_tokens": 43411,
+        "output_tokens": 3674,
+        "api_equiv_usd": 0.126
+      }
+    },
+    "api_equiv_usd": 0.2623
+  }
+}

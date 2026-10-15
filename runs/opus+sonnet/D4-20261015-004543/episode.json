@@ -1,0 +1,188 @@
+{
+  "incident": "D4",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\D4-20261015-004543",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "1c1f4ada-d3a3-4a44-86ac-f8df84c23055",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run 1c1f4ada for 2026-10-01 failed at quality_checks because the upstream payments file for that day contains every payment twice. There are 834 rows but only 417 unique payment_ids, and the two copies are identical. Following the duplicates runbook (Cause A), I proposed deduplicating payments on payment_id at ingest. It isn't applied yet: the harness will apply it and rerun the pipeline. Upstream should still be told about the doubled export.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "duplicate_rows_in_file",
+          "table": "payments",
+          "column": "payment_id",
+          "model": null,
+          "explanation": "The 2026-10-01 payments landing file has 834 rows. Every one of its 417 payment_ids appears exactly twice, with identical order_id, method, amount and paid_ts. The ids don't overlap with the 2026-09-30 file and all timestamps fall on the partition day (one is a few minutes past midnight), so these are not stale rows resent from an earlier day. The ingest config has no dedupe key, so raw.payments kept both copies. That made unique_stg_payments_payment_id, assert_payments_match_orders and row_count_trend fail, and the fct_orders tests were skipped. fct_orders also has 0 rows for 2026-10-01, which is why the freshness and reconciliation checks fail. I didn't confirm why it is empty. My best guess is that the build was blocked by the payments failures."
+        },
+        "evidence": [
+          {
+            "claim": "Run 1c1f4ada failed at quality_checks; ingest and transform succeeded",
+            "evidence_ids": [
+              "run:1c1f4ada"
+            ]
+          },
+          {
+            "claim": "raw.payments has 834 rows, 190% of the trailing median of 439; the unique payment_id test and the payments-match-orders test each found 417 failing rows",
+            "evidence_ids": [
+              "check:row_count_trend:raw.payments@live",
+              "check:unique_stg_payments_payment_id.3744510712@1c1f4ada",
+              "check:assert_payments_match_orders@1c1f4ada"
+            ]
+          },
+          {
+            "claim": "All 417 payment_ids appear exactly twice as identical full rows in the 2026-10-01 file. They aren't stale rows from 2026-09-30, and the schema matches the contract.",
+            "evidence_ids": [
+              "worker:1",
+              "sql:b45ac26e",
+              "landing:payments@2026-10-01",
+              "landing:payments@2026-09-30"
+            ]
+          },
+          {
+            "claim": "fct_orders has 0 rows for 2026-10-01 against 440 raw orders, and its tests were skipped",
+            "evidence_ids": [
+              "check:reconciliation:raw.orders->marts.fct_orders@live",
+              "check:freshness:marts.fct_orders@live",
+              "check:not_null_fct_orders_order_id.4e687af8d0@1c1f4ada",
+              "check:unique_fct_orders_order_id.523ddb6ce5@1c1f4ada"
+            ]
+          },
+          {
+            "claim": "No dbt models changed and the ingest config has no dedupe key",
+            "evidence_ids": [
+              "model:changes",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "For identical copies inside one file, the runbook says to use deduplicate_on_ingest on the table's primary key",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:duplicates#remedy",
+              "runbook:duplicates#how-to-distinguish",
+              "runbook:duplicates#choosing-the-dedupe-key"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "stale_rows_resent: ruled out because the payment_ids don't overlap with 2026-09-30 and all timestamps fall on the partition day",
+          "bad_model_deploy and revert_model_change: ruled out because no dbt models changed",
+          "request_upstream_redelivery: the runbook allows it, but deduping is the recommended fix for identical copies inside one file and doesn't depend on upstream",
+          "schema change and column mapping: ruled out because the header matches the contract"
+        ]
+      },
+      "proposal": {
+        "ts": 1792039608.4548266,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "deduplicate_on_ingest",
+            "params": {
+              "table": "payments",
+              "key": "payment_id"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 payments landing file has every one of 417 payment_ids exactly twice, as identical full-row copies. The ids don't overlap with 2026-09-30, all timestamps are on the partition day, and the schema matches the contract. This is runbook Cause A (duplicates inside one file), and the runbook remedy is deduplicate_on_ingest on the primary key payment_id. Deduping restores 417 unique payments, which is normal volume. That clears the unique_stg_payments_payment_id, assert_payments_match_orders and row_count_trend failures and unblocks the fct_orders build and its tests. No dbt models changed, so a model revert doesn't apply.",
+        "evidence_ids": [
+          "run:1c1f4ada",
+          "check:unique_stg_payments_payment_id.3744510712@1c1f4ada",
+          "check:row_count_trend:raw.payments@live",
+          "check:assert_payments_match_orders@1c1f4ada",
+          "worker:1",
+          "sql:b45ac26e",
+          "landing:payments@2026-10-01",
+          "landing:payments@2026-09-30",
+          "config:ingest",
+          "model:changes",
+          "worker:2",
+          "runbook:duplicates#remedy",
+          "runbook:duplicates#how-to-distinguish",
+          "runbook:duplicates#choosing-the-dedupe-key"
+        ]
+      },
+      "applied": [
+        "ingest now keeps one row per payment_id when loading raw.payments"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 60.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 60.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 18,
+    "cited_ids_total": 18,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 16,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 69805,
+        "output_tokens": 2957,
+        "api_equiv_usd": 0.2375
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 47462,
+        "output_tokens": 3458,
+        "api_equiv_usd": 0.0825
+      }
+    },
+    "api_equiv_usd": 0.32
+  }
+}

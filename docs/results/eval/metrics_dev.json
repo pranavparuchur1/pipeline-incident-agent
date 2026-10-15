@@ -1,0 +1,149 @@
+[
+  {
+    "config": "opus+sonnet",
+    "n": 5,
+    "missing": [],
+    "root_cause_accuracy": {
+      "k": 5,
+      "n": 5,
+      "rate": 1.0,
+      "ci95": [
+        0.57,
+        1.0
+      ]
+    },
+    "root_cause_family_accuracy": {
+      "k": 5,
+      "n": 5,
+      "rate": 1.0,
+      "ci95": [
+        0.57,
+        1.0
+      ]
+    },
+    "decision_accuracy": {
+      "k": 5,
+      "n": 5,
+      "rate": 1.0,
+      "ci95": [
+        0.57,
+        1.0
+      ]
+    },
+    "recovery_first_attempt": {
+      "k": 5,
+      "n": 5,
+      "rate": 1.0,
+      "ci95": [
+        0.57,
+        1.0
+      ]
+    },
+    "recovery_with_retry": {
+      "k": 5,
+      "n": 5,
+      "rate": 1.0,
+      "ci95": [
+        0.57,
+        1.0
+      ]
+    },
+    "correct_escalation": {
+      "k": 0,
+      "n": 0,
+      "rate": null,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "false_remediation": {
+      "count": 0,
+      "applied_fixes": 5,
+      "k": 0,
+      "n": 5,
+      "rate": 0.0,
+      "ci95": [
+        0.0,
+        0.43
+      ]
+    },
+    "time_to_diagnosis_s": {
+      "median": 53.5,
+      "p90": 68.8
+    },
+    "cost_per_incident_usd": {
+      "mean": 0.3,
+      "median": 0.293,
+      "worker_share": 0.31
+    },
+    "delegations_per_incident": 2.6,
+    "tool_calls_per_incident": 17.6,
+    "citations_valid": {
+      "valid": 95,
+      "total": 95
+    },
+    "confidence_when_correct": 0.88,
+    "confidence_when_wrong": null,
+    "errors": {},
+    "per_incident": {
+      "D1": {
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
+        "attempts": 1,
+        "false_remediations": 0,
+        "seconds": 48.7,
+        "usd": 0.2926
+      },
+      "F1": {
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
+        "attempts": 1,
+        "false_remediations": 0,
+        "seconds": 53.5,
+        "usd": 0.214
+      },
+      "M2": {
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
+        "attempts": 1,
+        "false_remediations": 0,
+        "seconds": 50.1,
+        "usd": 0.2989
+      },
+      "R1": {
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
+        "attempts": 1,
+        "false_remediations": 0,
+        "seconds": 68.8,
+        "usd": 0.4088
+      },
+      "S1": {
+        "root_cause_ok": true,
+        "decision": "fix",
+        "recovered": true,
+        "attempts": 1,
+        "false_remediations": 0,
+        "seconds": 73.9,
+        "usd": 0.2873
+      }
+    }
+  },
+  {
+    "config": "sonnet-only",
+    "n": 0
+  },
+  {
+    "config": "opus-solo",
+    "n": 0
+  },
+  {
+    "config": "opus+sonnet-noimg",
+    "n": 0
+  }
+]

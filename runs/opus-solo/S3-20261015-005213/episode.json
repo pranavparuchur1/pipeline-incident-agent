@@ -1,0 +1,168 @@
+{
+  "incident": "S3",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\S3-20261015-005213",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "38457fee-dafa-4b46-bf8d-4790d25949e8",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run 38457fee (partition 2026-10-01) failed at ingest because upstream now sends orders.order_total with a \"$\" in front (e.g. \"$4.99\"), and those values can't be cast to DECIMAL(12,2). The file's columns still match the contract and currency is still USD, so only the text format changed, not the meaning. The proposed fix makes ingest strip the \"$\" from orders.order_total (the strip_currency parser) before loading; the harness will rerun and verify it.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_type_changed",
+          "table": "orders",
+          "column": "order_total",
+          "model": null,
+          "explanation": "Upstream changed how orders.order_total is written, from plain decimals (14.99 on 2026-09-30) to values with a dollar sign ($4.99 on 2026-10-01). Ingest casts the column to DECIMAL(12,2) and fails on the '$'. The header and currency (USD) are unchanged, so the meaning is the same and only the format differs."
+        },
+        "evidence": [
+          {
+            "claim": "Run 38457fee failed in ingest with a Conversion Error casting \"$4.99\" to DECIMAL(12,2) from orders.order_total",
+            "evidence_ids": [
+              "run:38457fee",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The 2026-10-01 orders file has a header that matches the contract and '$'-prefixed order_total values from the first row to the last, with currency USD",
+            "evidence_ids": [
+              "landing:orders@2026-10-01"
+            ]
+          },
+          {
+            "claim": "The previous day's file used plain decimal values, so the format changed on 2026-10-01",
+            "evidence_ids": [
+              "landing:orders@2026-09-30"
+            ]
+          },
+          {
+            "claim": "No custom ingest parser is set for this column",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says a cast error on a '$'-formatted value means the value was reformatted, and that set_column_parser with strip_currency is the safe adaptation",
+            "evidence_ids": [
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: rejected. The format change covers the whole file and looks deliberate, and the runbook says a redelivery would include persistent upstream changes, so it would most likely still contain '$'",
+          "rerun_only: rejected. The same file would fail the same cast again",
+          "Corrupt or partial file: ruled out. The file has no parse problems, ends with a newline and has a normal row count (440 vs 461)",
+          "Escalate to upstream_app_team: not needed. The meaning and currency are unchanged, so adapting in ingest is the safe option the runbook allows"
+        ]
+      },
+      "proposal": {
+        "ts": 1792039958.3136694,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "set_column_parser",
+            "params": {
+              "table": "orders",
+              "column": "order_total",
+              "parser": "strip_currency"
+            }
+          }
+        ],
+        "rationale": "Starting 2026-10-01, upstream sends orders.order_total with a \"$\" in front (e.g. $4.99), so ingest fails when it casts the value to DECIMAL(12,2). The header still matches the contract and currency is still USD, so the meaning has not changed; only the text format has. The runbook says to handle a reformatted value by setting the strip_currency parser on the contract column. The parser stays in place for later loads, which is right because this looks like a deliberate change across the whole file, not a one-off bad delivery.",
+        "evidence_ids": [
+          "run:38457fee",
+          "log:243",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "runbook:schema_changes#symptom-to-cause",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "config:ingest"
+        ]
+      },
+      "applied": [
+        "ingest now parses raw.orders.order_total with strip_currency"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 31.8,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.9,
+      "seconds": 31.8
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 7,
+    "cited_ids_total": 7,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 8,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 47502,
+        "output_tokens": 2099,
+        "api_equiv_usd": 0.1291
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1291
+  }
+}

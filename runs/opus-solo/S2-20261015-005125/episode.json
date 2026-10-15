@@ -1,0 +1,174 @@
+{
+  "incident": "S2",
+  "config": "opus-solo",
+  "trace_dir": "runs\\opus-solo\\S2-20261015-005125",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "d8b26103-291e-4cb8-b997-227601156013",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run d8b26103 for 2026-10-01 failed at ingest because upstream renamed the customers column `country` to `country_code`. The values are still ISO-2 country codes, the same as the existing raw data, so the meaning didn't change. Fix: map country_code to country at ingest, then rerun the partition.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_renamed",
+          "table": "customers",
+          "column": "country",
+          "model": null,
+          "explanation": "The customers.csv landing file for 2026-10-01 has the header column 'country_code' where the contract expects 'country'. Ingest matches columns by name, so it failed with a schema mismatch. The new values (e.g. 'US') use the same ISO-2 format as the existing raw.customers.country values (US/DE/AU/GB/CA), so this is a plain rename with no change in meaning."
+        },
+        "evidence": [
+          {
+            "claim": "Run d8b26103 failed at ingest: a schema mismatch on raw.customers, with 'country' missing and 'country_code' unexpected",
+            "evidence_ids": [
+              "run:d8b26103",
+              "log:243"
+            ]
+          },
+          {
+            "claim": "The landing file header has country_code instead of country, the values are ISO-2 codes like 'US', and there are no parse problems",
+            "evidence_ids": [
+              "landing:customers@2026-10-01"
+            ]
+          },
+          {
+            "claim": "Existing raw.customers.country values are ISO-2 codes, so the meaning is unchanged",
+            "evidence_ids": [
+              "sql:8cef8069",
+              "schema:raw.customers"
+            ]
+          },
+          {
+            "claim": "The runbook says to handle a same-meaning rename with apply_column_mapping at ingest",
+            "evidence_ids": [
+              "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+              "runbook:architecture#data-contracts-raw"
+            ]
+          },
+          {
+            "claim": "The other event landing files for 2026-10-01 match the contract",
+            "evidence_ids": [
+              "landing:orders@2026-10-01",
+              "landing:order_items@2026-10-01",
+              "landing:payments@2026-10-01"
+            ]
+          }
+        ],
+        "confidence": 0.92,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "request_upstream_redelivery: rejected because the rename looks deliberate and permanent, and a redelivery would just send the same header again",
+          "escalate_to_upstream_app_team: not needed because the meaning and format are unchanged",
+          "ignore_extra_columns(country_code): wrong, because the contract column country would still be missing",
+          "bad dbt model deploy: ruled out because the failure is at ingest, before transform runs"
+        ]
+      },
+      "proposal": {
+        "ts": 1792039910.9483652,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "apply_column_mapping",
+            "params": {
+              "table": "customers",
+              "source_column": "country_code",
+              "target_column": "country"
+            }
+          }
+        ],
+        "rationale": "Upstream renamed customers.country to country_code starting 2026-10-01. The values are the same ISO-2 country codes already stored in raw.customers.country (US/DE/AU/GB/CA), so the meaning is unchanged. Per the schema_changes runbook, a same-meaning rename is adapted at ingest with apply_column_mapping. The other landing files for that day match the contract.",
+        "evidence_ids": [
+          "log:243",
+          "run:d8b26103",
+          "landing:customers@2026-10-01",
+          "schema:raw.customers",
+          "sql:8cef8069",
+          "runbook:schema_changes#safe-to-adapt-in-ingest-data-platform",
+          "runbook:architecture#data-contracts-raw",
+          "landing:orders@2026-10-01",
+          "landing:order_items@2026-10-01",
+          "landing:payments@2026-10-01"
+        ]
+      },
+      "applied": [
+        "ingest now reads raw.customers.country from upstream column 'country_code'"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 31.2,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.92,
+      "seconds": 31.2
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 10,
+    "cited_ids_total": 10,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 1,
+    "tool_calls": 11,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 65886,
+        "output_tokens": 2357,
+        "api_equiv_usd": 0.1591
+      },
+      "worker": {
+        "calls": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "api_equiv_usd": 0
+      }
+    },
+    "api_equiv_usd": 0.1591
+  }
+}

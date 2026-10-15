@@ -1,0 +1,135 @@
+{
+  "incident": "S5",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\S5-20261015-003023",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "1ca3acff-7d9e-4885-80fb-c6eb72ebd60d",
+    "failed_step": "ingest",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "nightly run 1ca3acff (2026-10-01) failed at ingest because upstream dropped the required `method` column from payments.csv. No new column carries the data, so there's nothing to map. Escalating to upstream_app_team to restore the column or confirm the new definition. We won't backfill it with NULLs or defaults. Once the column is back, request a redelivery for 2026-10-01 and rerun.",
+        "root_cause": {
+          "family": "schema_change",
+          "cause": "column_dropped",
+          "table": "raw.payments",
+          "column": "method",
+          "model": null,
+          "explanation": "The 2026-10-01 payments.csv header is [payment_id, order_id, amount, paid_ts]. The contract column `method` (VARCHAR: card/paypal/gift_card) is missing and no new column was added, so it was dropped, not renamed. The row count and ID sequence are normal. Ingest does strict by-name contract matching, so the load failed. The data does not exist in the delivery, so no mapping or parser can recover it."
+        },
+        "evidence": [
+          {
+            "claim": "Run 1ca3acff failed at ingest: schema mismatch on raw.payments, missing ['method'], no unexpected columns. The previous runs succeeded.",
+            "evidence_ids": [
+              "run:1ca3acff",
+              "log:243",
+              "run:b62948b3"
+            ]
+          },
+          {
+            "claim": "The 2026-10-01 header lacks `method` and has no replacement column. The 2026-09-30 header had it populated. Row volume and the ID sequence are normal.",
+            "evidence_ids": [
+              "landing:payments@2026-10-01",
+              "landing:payments@2026-09-30",
+              "schema:raw.payments",
+              "worker:1"
+            ]
+          },
+          {
+            "claim": "The ingest config is default (no mappings), so a config change didn't cause this.",
+            "evidence_ids": [
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says a dropped required column with no carrier should be escalated to upstream_app_team, and we must not backfill it. The mapping and ignore actions don't apply.",
+            "evidence_ids": [
+              "runbook:schema_changes#requires-escalation",
+              "runbook:schema_changes#symptom-to-cause",
+              "runbook:remediation_policy#allow-listed-actions",
+              "worker:2"
+            ]
+          }
+        ],
+        "confidence": 0.9,
+        "decision": "escalate",
+        "escalation_owner": "upstream_app_team",
+        "alternatives_considered": [
+          "Column renamed (apply_column_mapping): ruled out because there are no unexpected or new columns in the header.",
+          "Partial or corrupt export (request_upstream_redelivery now): ruled out because rows and IDs are complete and the file parses cleanly. A re-export would likely still lack the column until upstream fixes it.",
+          "ignore_extra_columns: not applicable, because the problem is a missing contract column, not an extra one.",
+          "bad_model_deploy or transient failure: ruled out because the failure is at ingest, before any dbt model runs, and it is caused by the file's content."
+        ]
+      },
+      "proposal": null,
+      "applied": [],
+      "apply_error": null,
+      "recovered": false,
+      "verification": null,
+      "seconds": 43.2,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "escalate",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "escalate",
+      "recovered": false,
+      "confidence": 0.9,
+      "seconds": 43.2
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true,
+          "column": true
+        },
+        "correct": true
+      },
+      "decision": "escalate",
+      "recovered": false
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 12,
+    "cited_ids_total": 12,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 11,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 20509,
+        "output_tokens": 2240,
+        "api_equiv_usd": 0.1014
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 22479,
+        "output_tokens": 2197,
+        "api_equiv_usd": 0.0686
+      }
+    },
+    "api_equiv_usd": 0.17
+  }
+}

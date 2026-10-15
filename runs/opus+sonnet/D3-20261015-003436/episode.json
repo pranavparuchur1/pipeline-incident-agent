@@ -1,0 +1,194 @@
+{
+  "incident": "D3",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\D3-20261015-003436",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "3f4d85b4-bd16-4052-a4f0-917479657475",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The 2026-10-01 nightly run (3f4d85b4) failed at quality_checks because upstream's orders file for 10-01 re-sent all 461 rows from 09-30 alongside the 440 real 10-01 orders. That gives 901 rows, about twice the usual 461, and 461 duplicate order_ids in stg_orders, so the downstream marts were skipped. I've proposed asking upstream to redeliver only the 10-01 orders file. The runbook rules out deduplicating on ingest for rows re-sent from an earlier day, and no dbt models or ingest settings changed.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "stale_rows_resent",
+          "table": "orders",
+          "column": null,
+          "model": null,
+          "explanation": "The 2026-10-01 orders landing file holds 901 unique order_ids. 440 are new 10-01 orders. The other 461 have order_ts on 2026-09-30 and are exact copies of the entire 09-30 partition. No order_id repeats inside the file. The duplicates only appear across days, which made unique_stg_orders_order_id and assert_order_totals_match_items fail with 461 rows each and caused the mart builds and their tests to be skipped. Schema, ingest config and dbt models are unchanged."
+        },
+        "evidence": [
+          {
+            "claim": "Run 3f4d85b4 failed at quality_checks. Ingest and transform succeeded.",
+            "evidence_ids": [
+              "run:3f4d85b4"
+            ]
+          },
+          {
+            "claim": "raw.orders has 901 rows, 195% of the trailing median of 461. stg_orders has 461 duplicate order_ids, and the mart tests were skipped or failed.",
+            "evidence_ids": [
+              "check:row_count_trend:raw.orders@3f4d85b4",
+              "check:unique_stg_orders_order_id.e3b841c71a@3f4d85b4",
+              "check:assert_order_totals_match_items@3f4d85b4",
+              "check:reconciliation:raw.orders->marts.fct_orders@3f4d85b4",
+              "check:freshness:marts.fct_orders@3f4d85b4"
+            ]
+          },
+          {
+            "claim": "The 10-01 orders file repeats the whole 09-30 file (461 identical rows with 09-30 timestamps) plus 440 new orders. Nothing is duplicated inside the file.",
+            "evidence_ids": [
+              "worker:1",
+              "sql:4abb9ab6",
+              "sql:6e6e6e51",
+              "sql:b520652d",
+              "landing:orders@2026-10-01",
+              "landing:orders@2026-09-30"
+            ]
+          },
+          {
+            "claim": "The schema matches the contract, and neither the ingest config nor the dbt models changed.",
+            "evidence_ids": [
+              "schema:raw.orders",
+              "config:ingest",
+              "model:changes"
+            ]
+          },
+          {
+            "claim": "order_items and payments volumes are normal.",
+            "evidence_ids": [
+              "check:row_count_trend:raw.order_items@live",
+              "check:row_count_trend:raw.payments@live"
+            ]
+          },
+          {
+            "claim": "For rows re-sent from an earlier day, the runbook says to request redelivery and not to deduplicate on ingest.",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:duplicates#remedy",
+              "runbook:duplicates#how-to-distinguish",
+              "runbook:remediation_policy#choosing-quickly"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Duplicate rows inside the file, fixed with deduplicate_on_ingest on order_id: ruled out because every order_id in the file is unique and the duplicates are 09-30 rows, so a within-partition dedupe would not remove them.",
+          "Bad model deploy: ruled out because no models changed.",
+          "Schema change: ruled out because the header matches the contract.",
+          "Transient failure, fixed with rerun_only: ruled out because the data itself is wrong and a rerun would fail the same way.",
+          "Escalating to upstream_app_team: kept in reserve in case the redelivery contains the same stale rows."
+        ]
+      },
+      "proposal": {
+        "ts": 1792038932.0940974,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "request_upstream_redelivery",
+            "params": {
+              "tables": [
+                "orders"
+              ],
+              "day": "2026-10-01"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 orders export contains the whole 2026-09-30 export again (461 stale rows that exactly match the 09-30 partition) plus 440 genuine 10-01 orders. No order_id repeats inside the file. The duplicates come from rows resent from an earlier day, which is runbook Cause B. Deduplicating within the partition would not remove keys that collide with another partition, and the runbook says not to use it here. It recommends asking upstream to redeliver the day. order_items and payments have normal volumes and their checks pass, so only orders needs re-exporting.",
+        "evidence_ids": [
+          "worker:1",
+          "worker:2",
+          "sql:4abb9ab6",
+          "sql:6e6e6e51",
+          "sql:b520652d",
+          "landing:orders@2026-10-01",
+          "landing:orders@2026-09-30",
+          "check:unique_stg_orders_order_id.e3b841c71a@3f4d85b4",
+          "check:row_count_trend:raw.orders@3f4d85b4",
+          "check:row_count_trend:raw.order_items@live",
+          "check:row_count_trend:raw.payments@live",
+          "runbook:duplicates#remedy",
+          "runbook:duplicates#how-to-distinguish",
+          "runbook:remediation_policy#choosing-quickly"
+        ]
+      },
+      "applied": [
+        "upstream re-exported orders (440 rows) for 2026-10-01"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 57.2,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 57.2
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 21,
+    "cited_ids_total": 21,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 16,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 69567,
+        "output_tokens": 2945,
+        "api_equiv_usd": 0.2355
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 36207,
+        "output_tokens": 3162,
+        "api_equiv_usd": 0.0846
+      }
+    },
+    "api_equiv_usd": 0.3201
+  }
+}

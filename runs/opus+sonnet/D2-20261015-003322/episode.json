@@ -1,0 +1,181 @@
+{
+  "incident": "D2",
+  "config": "opus+sonnet",
+  "trace_dir": "runs\\opus+sonnet\\D2-20261015-003322",
+  "alert": {
+    "partition": "2026-10-01",
+    "run_id": "57a95b35-08cc-4ecc-8a3c-d824e2a1b89e",
+    "failed_step": "quality_checks",
+    "success": false
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "diagnosis": {
+        "summary": "The nightly run for 2026-10-01 (run 57a95b35) failed because the order_items landing file contains 42 order_item_ids that each appear twice as identical rows (882 rows, only 840 distinct ids). The duplicates failed the uniqueness test on stg_order_items and the order totals check. fct_orders was then skipped, so it has no rows for 2026-10-01 and also fails the freshness and reconciliation checks. The proposed fix is to deduplicate order_items on order_item_id at ingest, as the runbook says for identical duplicates inside one file. Upstream should also be told to fix the export that created them.",
+        "root_cause": {
+          "family": "duplicates",
+          "cause": "duplicate_rows_in_file",
+          "table": "order_items",
+          "column": "order_item_id",
+          "model": "stg_order_items",
+          "explanation": "The upstream order_items export for 2026-10-01 contains 42 rows that appear twice as exact copies, which looks like a retried export. None of the duplicated ids exist in earlier partitions, so these are not stale rows resent from earlier days. Ingest loaded all 882 rows. The duplicates failed the stg_order_items uniqueness test and the order totals check, and fct_orders was skipped. That left no fct_orders rows for the day, which caused the freshness and reconciliation failures."
+        },
+        "evidence": [
+          {
+            "claim": "The run failed at quality_checks with 6 failed checks, including the stg_order_items uniqueness test (42 failing rows).",
+            "evidence_ids": [
+              "run:57a95b35",
+              "log:248",
+              "check:unique_stg_order_items_order_item_id.90e333a108@57a95b35"
+            ]
+          },
+          {
+            "claim": "The order_items file has 882 rows but only 840 distinct ids. The 42 duplicated ids each appear twice as identical rows, and none appear in earlier partitions.",
+            "evidence_ids": [
+              "worker:1",
+              "sql:0aa37fac",
+              "sql:f6f3862b",
+              "landing:order_items@2026-10-01",
+              "log:245"
+            ]
+          },
+          {
+            "claim": "fct_orders has no rows for 2026-10-01, so the freshness and reconciliation checks fail as a downstream effect.",
+            "evidence_ids": [
+              "check:reconciliation:raw.orders->marts.fct_orders@57a95b35",
+              "check:freshness:marts.fct_orders@57a95b35",
+              "check:not_null_fct_orders_order_id.4e687af8d0@57a95b35"
+            ]
+          },
+          {
+            "claim": "No dbt models changed, and the ingest config is at defaults with no dedupe key set.",
+            "evidence_ids": [
+              "model:changes",
+              "config:ingest"
+            ]
+          },
+          {
+            "claim": "The runbook says identical duplicates inside one file should be fixed with deduplicate_on_ingest on the primary key.",
+            "evidence_ids": [
+              "worker:2",
+              "runbook:duplicates#remedy",
+              "runbook:duplicates#cause-a-duplicate-rows-within-one-file-retried-export"
+            ]
+          }
+        ],
+        "confidence": 0.88,
+        "decision": "fix",
+        "escalation_owner": null,
+        "alternatives_considered": [
+          "Stale rows resent from an earlier day: ruled out because no 2026-10-01 order_item_id appears in earlier partitions.",
+          "A bad dbt model deploy: ruled out because no models changed.",
+          "Requesting a redelivery from upstream: acceptable under the runbook, but deduplicating at ingest is safe because the copies are identical, and it is faster.",
+          "Schema change or missing partition: ruled out because the file headers match the contract and all partitions are present."
+        ]
+      },
+      "proposal": {
+        "ts": 1792038855.3469815,
+        "type": "proposal",
+        "actions": [
+          {
+            "action": "deduplicate_on_ingest",
+            "params": {
+              "table": "order_items",
+              "key": "order_item_id"
+            }
+          }
+        ],
+        "rationale": "The 2026-10-01 order_items landing file contains 42 order_item_ids that each appear twice as identical rows (882 rows, 840 distinct ids). None of these ids appear in earlier partitions, so these are duplicates inside one file, not stale rows resent from earlier days. The duplicates broke the uniqueness test on stg_order_items and the order totals check, and the fct_orders build was skipped, which caused the freshness and reconciliation failures. No dbt models changed. The runbook fix for identical duplicates inside one file is deduplicate_on_ingest on the primary key, order_item_id.",
+        "evidence_ids": [
+          "worker:1",
+          "worker:2",
+          "sql:0aa37fac",
+          "sql:f6f3862b",
+          "landing:order_items@2026-10-01",
+          "log:245",
+          "log:248",
+          "check:unique_stg_order_items_order_item_id.90e333a108@57a95b35",
+          "check:assert_order_totals_match_items@57a95b35",
+          "check:reconciliation:raw.orders->marts.fct_orders@57a95b35",
+          "model:changes",
+          "config:ingest",
+          "runbook:duplicates#remedy",
+          "runbook:duplicates#cause-a-duplicate-rows-within-one-file-retried-export"
+        ]
+      },
+      "applied": [
+        "ingest now keeps one row per order_item_id when loading raw.order_items"
+      ],
+      "apply_error": null,
+      "recovered": true,
+      "verification": {
+        "recovered": true,
+        "run_success": true,
+        "failed_step": null,
+        "error": "",
+        "failed_checks": [],
+        "tables_differing_from_known_good": [],
+        "run_log_errors": []
+      },
+      "seconds": 52.7,
+      "error": null
+    }
+  ],
+  "grade": {
+    "expected_decision": "fix",
+    "first": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true,
+      "confidence": 0.88,
+      "seconds": 52.7
+    },
+    "final": {
+      "root_cause": {
+        "family": true,
+        "cause": true,
+        "target": true,
+        "targets": {
+          "table": true
+        },
+        "correct": true
+      },
+      "decision": "fix",
+      "recovered": true
+    },
+    "attempts": 1,
+    "correct_decision": true,
+    "false_remediations": 0,
+    "cited_ids_valid": 16,
+    "cited_ids_total": 16,
+    "errors": []
+  },
+  "usage": {
+    "llm_calls": 3,
+    "tool_calls": 17,
+    "by_role": {
+      "master": {
+        "calls": 1,
+        "input_tokens": 69216,
+        "output_tokens": 2711,
+        "api_equiv_usd": 0.2307
+      },
+      "worker": {
+        "calls": 2,
+        "input_tokens": 41962,
+        "output_tokens": 2918,
+        "api_equiv_usd": 0.0787
+      }
+    },
+    "api_equiv_usd": 0.3094
+  }
+}
