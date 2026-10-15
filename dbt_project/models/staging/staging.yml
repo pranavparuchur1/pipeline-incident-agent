@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  - name: stg_products
+    description: Raw products, passed through. No dedup or filtering.
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+
+  - name: stg_customers
+    description: Raw customers, one row per loaded record. No dedup or filtering.
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+
+  - name: stg_orders
+    description: Raw orders with friendlier names (ordered_at, order_amount, partition_date). No dedup or filtering.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+      - name: ordered_at
+        data_tests: [not_null]
+      - name: order_amount
+        data_tests: [not_null]
+      - name: status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [placed, shipped, cancelled, returned]
+      - name: channel
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [web, app, marketplace]
+      - name: currency
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [USD]
+
+  - name: stg_order_items
+    description: Raw order lines with a computed line_amount (quantity * unit_price). No dedup or filtering.
+    columns:
+      - name: order_item_id
+        data_tests: [unique, not_null]
+      - name: order_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: product_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+
+  - name: stg_payments
+    description: Raw payments with paid_at renamed. No dedup or filtering.
+    columns:
+      - name: payment_id
+        data_tests: [unique, not_null]
+      - name: order_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: method
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [card, paypal, gift_card]
+      - name: amount
+        data_tests: [not_null]

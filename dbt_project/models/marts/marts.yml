@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: fct_orders
+    description: One row per order with item rollups and payment info.
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+
+  - name: dim_customers
+    description: One row per customer with order history and lifetime value (placed and shipped orders).
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+
+  - name: fct_daily_revenue
+    description: Orders, cancellations and revenue per partition_date and channel.

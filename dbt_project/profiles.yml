@@ -1,0 +1,7 @@
+larkspur:
+  target: sandbox
+  outputs:
+    sandbox:
+      type: duckdb
+      path: "{{ env_var('PIA_WAREHOUSE') }}"
+      threads: 1
