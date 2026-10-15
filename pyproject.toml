@@ -37,6 +37,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 src = ["src"]
+extend-exclude = ["docs", "runbooks", "*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
