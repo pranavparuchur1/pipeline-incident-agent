@@ -63,8 +63,16 @@ def metrics(config: str, ids: list[str]) -> dict:
     secs = [g[i]["first"]["seconds"] for i in eps if g[i]["first"]["seconds"] is not None]
     cost = [e["usage"]["api_equiv_usd"] for e in eps.values()]
     worker_cost = [e["usage"]["by_role"]["worker"]["api_equiv_usd"] for e in eps.values()]
-    conf_ok = [g[i]["first"]["confidence"] for i in eps if g[i]["first"]["root_cause"]["correct"] and g[i]["first"]["confidence"] is not None]
-    conf_bad = [g[i]["first"]["confidence"] for i in eps if not g[i]["first"]["root_cause"]["correct"] and g[i]["first"]["confidence"] is not None]
+    conf_ok = [
+        g[i]["first"]["confidence"]
+        for i in eps
+        if g[i]["first"]["root_cause"]["correct"] and g[i]["first"]["confidence"] is not None
+    ]
+    conf_bad = [
+        g[i]["first"]["confidence"]
+        for i in eps
+        if not g[i]["first"]["root_cause"]["correct"] and g[i]["first"]["confidence"] is not None
+    ]
     cited = sum(g[i]["cited_ids_valid"] for i in eps), sum(g[i]["cited_ids_total"] for i in eps)
     return {
         "config": config,
