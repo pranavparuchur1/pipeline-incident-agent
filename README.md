@@ -57,9 +57,12 @@ Requirements: Windows/macOS/Linux, [uv](https://docs.astral.sh/uv/), and for the
 [Claude Code CLI](https://docs.claude.com/en/docs/claude-code) signed in with your own Claude account
 (`claude auth login`). The agent runs on that subscription through `claude -p`, not the API.
 
+On Windows, clone to a short path (e.g. `C:\src\pipeline-incident-agent`): some of Dagster's installed
+files are deep enough to exceed the 260-character path limit under long parent folders.
+
 ```bash
 uv sync
-uv run pytest                                   # 99 tests, no model calls
+uv run pytest                                   # no model calls; tool tests skip until a baseline exists
 uv run pia sandbox init                          # build 30 days of pipeline history (~10 min)
 uv run pia incidents list
 uv run pia incidents gate --ids S1,F1,M2         # prove incidents break, true fixes recover, decoys don't
